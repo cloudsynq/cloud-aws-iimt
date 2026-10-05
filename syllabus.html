@@ -1,0 +1,385 @@
+<title>AWS Syllabus — 1st Semester</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@400;500&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root {
+    --bg:#FFF8F0; --surface:#FFFFFF; --s2:#FFF3E0; --s3:#232F3E;
+    --fg:#1A1A1A; --muted:#5C4B3A; --light:#A08060;
+    --acc:#FF9900; --acc-l:#FFF3CC; --acc-d:#C47600;
+    --grn:#2E7D32; --grn-l:#E8F5E9;
+    --bdr:#F0DFC0; --bdr-l:#FFF0D8;
+    --shadow:0 2px 10px rgba(255,153,0,.10), 0 1px 2px rgba(0,0,0,.04);
+  }
+  @media (prefers-color-scheme:dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#150E04; --surface:#1E1408; --s2:#251A08; --s3:#0A0600;
+      --fg:#F0DFC0; --muted:#A08060; --light:#5C4030;
+      --acc:#FFB833; --acc-l:#2A1D00; --acc-d:#FFD580;
+      --grn:#66BB6A; --grn-l:#0A2010;
+      --bdr:#3A2810; --bdr-l:#2A1E08;
+      --shadow:0 2px 10px rgba(0,0,0,.5); color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#150E04; --surface:#1E1408; --s2:#251A08; --s3:#0A0600;
+    --fg:#F0DFC0; --muted:#A08060; --light:#5C4030;
+    --acc:#FFB833; --acc-l:#2A1D00; --acc-d:#FFD580;
+    --grn:#66BB6A; --grn-l:#0A2010;
+    --bdr:#3A2810; --bdr-l:#2A1E08;
+    --shadow:0 2px 10px rgba(0,0,0,.5); color-scheme:dark;
+  }
+  *, *::before, *::after { box-sizing:border-box; margin:0; }
+  body { font-family:'Inter',system-ui,sans-serif; background:var(--bg); color:var(--fg); font-size:15px; line-height:1.7; padding-inline:16px; }
+  .wrap { max-width:960px; margin:0 auto; padding-block:36px 80px; }
+
+  .hero { background:linear-gradient(135deg, var(--s3) 0%, #1A2840 100%); border-radius:18px; padding:44px 40px 36px; margin-bottom:32px; position:relative; overflow:hidden; }
+  .hero::after { content:''; position:absolute; right:-60px; top:-60px; width:280px; height:280px; border-radius:50%; background:radial-gradient(circle,rgba(255,153,0,.25) 0%,transparent 70%); pointer-events:none; }
+  .hero-eye { font-family:'Outfit',sans-serif; font-size:11px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:#FF9900; margin-bottom:10px; }
+  .hero h1 { font-family:'Outfit',sans-serif; font-size:2.1rem; font-weight:800; color:#FFF; line-height:1.15; text-wrap:balance; margin-bottom:8px; }
+  .hero h1 em { color:#FF9900; font-style:normal; }
+  .hero-sub { font-size:14px; color:rgba(255,255,255,.6); margin-bottom:28px; }
+  .stats { display:flex; flex-wrap:wrap; gap:12px; }
+  .stat { background:rgba(255,255,255,.1); border-radius:12px; padding:12px 18px; min-width:110px; }
+  .stat-n { font-family:'Outfit',sans-serif; font-size:2rem; font-weight:800; color:#FFF; line-height:1; display:block; }
+  .stat-l { font-size:11.5px; color:rgba(255,255,255,.6); margin-top:3px; }
+  .stat.done .stat-n { color:#81C784; }
+  .stat.left .stat-n { color:#FF9900; }
+  .progress-wrap { margin:20px 0 0; }
+  .progress-label { font-size:12px; color:rgba(255,255,255,.5); margin-bottom:6px; }
+  .progress-bar { height:6px; background:rgba(255,255,255,.15); border-radius:100px; overflow:hidden; }
+  .progress-fill { height:100%; background:linear-gradient(90deg,#FF9900,#FFD580); border-radius:100px; }
+
+  .unit-header { display:flex; align-items:center; gap:12px; margin:36px 0 16px; }
+  .unit-badge { font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; letter-spacing:.08em; text-transform:uppercase; background:var(--acc); color:#000; border-radius:6px; padding:4px 10px; white-space:nowrap; }
+  .unit-title { font-family:'Outfit',sans-serif; font-size:1.15rem; font-weight:700; color:var(--fg); }
+  .unit-line { flex:1; height:1px; background:var(--bdr); }
+
+  .mod { background:var(--surface); border:1px solid var(--bdr); border-radius:14px; margin-bottom:16px; box-shadow:var(--shadow); overflow:hidden; }
+  .mod-head { display:flex; align-items:center; gap:14px; padding:18px 22px; border-bottom:1px solid var(--bdr-l); }
+  .mod-num { font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:500; color:var(--acc-d); background:var(--acc-l); border-radius:7px; padding:4px 10px; white-space:nowrap; }
+  .mod-name { font-family:'Outfit',sans-serif; font-size:1.02rem; font-weight:700; color:var(--fg); flex:1; }
+  .mod-count { font-size:12px; color:var(--muted); white-space:nowrap; }
+  .mod-progress { width:60px; height:4px; background:var(--bdr); border-radius:100px; overflow:hidden; }
+  .mod-fill { height:100%; border-radius:100px; }
+  .mod-body { padding:6px 22px 18px; }
+
+  .topic { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--bdr-l); }
+  .topic:last-child { border-bottom:none; }
+  .t-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .t-name { font-size:13.5px; color:var(--fg); flex:1; }
+  .t-type { font-family:'JetBrains Mono',monospace; font-size:10.5px; color:var(--muted); background:var(--s2); border-radius:4px; padding:2px 8px; white-space:nowrap; }
+  .t-status { font-size:11px; font-weight:600; font-family:'Outfit',sans-serif; border-radius:20px; padding:2px 10px; white-space:nowrap; }
+
+  .done-dot { background:var(--grn); }
+  .todo-dot { background:var(--bdr); }
+  .done-fill { background:var(--grn); }
+  .todo-fill { background:var(--bdr); }
+  .s-done { background:var(--grn-l); color:var(--grn); }
+  .s-todo { background:var(--s2); color:var(--muted); }
+
+  .domain-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:12px; margin-top:16px; }
+  .domain { background:var(--surface); border:1px solid var(--bdr); border-radius:12px; padding:16px 18px; box-shadow:var(--shadow); }
+  .domain-pct { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; color:var(--acc-d); margin-bottom:4px; }
+  .domain-name { font-family:'Outfit',sans-serif; font-size:.9rem; font-weight:700; color:var(--fg); margin-bottom:6px; }
+  .domain-topics { font-size:12.5px; color:var(--muted); line-height:1.5; }
+
+  @media (max-width:620px) {
+    .hero { padding:28px 20px; } .hero h1 { font-size:1.6rem; }
+    .stats { gap:8px; } .stat { min-width:90px; padding:10px 14px; }
+    .mod-progress { display:none; } .t-type { display:none; }
+  }
+</style>
+
+<div class="wrap">
+
+  <div class="hero">
+    <div class="hero-eye">IIMT University, Meerut · 1st Semester · AWS Cloud Practitioner</div>
+    <h1>Amazon Web Services — <em>Complete Syllabus</em></h1>
+    <div class="hero-sub">Cloud Computing · AWS Fundamentals (1st Semester) · Unit-Wise Breakdown</div>
+    <div class="stats">
+      <div class="stat"><span class="stat-n">55</span><div class="stat-l">Total Topics</div></div>
+      <div class="stat"><span class="stat-n">9</span><div class="stat-l">Modules</div></div>
+      <div class="stat done"><span class="stat-n">30</span><div class="stat-l">Completed</div></div>
+      <div class="stat left"><span class="stat-n">25</span><div class="stat-l">Pending</div></div>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-label">Overall Progress — 55% complete</div>
+      <div class="progress-bar"><div class="progress-fill" style="width:55%"></div></div>
+    </div>
+  </div>
+
+  <!-- UNIT 1 -->
+  <div class="unit-header">
+    <div class="unit-badge">Unit 1</div>
+    <div class="unit-title">Cloud Fundamentals &amp; AWS Overview</div>
+    <div class="unit-line"></div>
+  </div>
+
+  <!-- Module 0 -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 00</div>
+      <div class="mod-name">Basic Networking</div>
+      <div class="mod-count">4 topics · 4 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Introduction to Networking — How the Internet Works</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IP Addressing — IPv4, IPv6, Public vs Private IPs</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">CIDR Notation &amp; Subnetting</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Core Protocols — TCP/IP, HTTP/HTTPS, DNS, SSH</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- Module 1 -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 01</div>
+      <div class="mod-name">Introduction to Cloud Computing</div>
+      <div class="mod-count">5 topics · 5 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Why Cloud? Traditional IT vs Cloud</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">History of Cloud Computing</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Service Models — IaaS, PaaS, SaaS</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Deployment Models — Public, Private, Hybrid, Multi-cloud</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Cloud Providers — AWS, Azure, GCP Comparison</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- Module 2 -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 02</div>
+      <div class="mod-name">Introduction to AWS</div>
+      <div class="mod-count">6 topics · 6 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AWS Global Infrastructure — Regions, AZs, Edge Locations</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AWS Management Console &amp; Service Categories</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AWS CLI Setup &amp; Basic Commands</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AWS Free Tier &amp; Pricing Model</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Shared Responsibility Model</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AWS Well-Architected Framework — 6 Pillars</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- UNIT 2 -->
+  <div class="unit-header">
+    <div class="unit-badge">Unit 2</div>
+    <div class="unit-title">Identity &amp; Access Management</div>
+    <div class="unit-line"></div>
+  </div>
+
+  <!-- Module 3 IAM -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 03</div>
+      <div class="mod-name">AWS IAM — Identity &amp; Access Management</div>
+      <div class="mod-count">9 topics · 9 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Introduction — Root Account vs IAM Users</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Users — Creating, Managing, Access Keys</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Groups — Organizing Users by Function</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Roles — Cross-Account &amp; Service Roles</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Policies — Managed, Inline, JSON Structure</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">MFA — Multi-Factor Authentication Setup</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Best Practices — Least Privilege, Password Policy</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Credential Report &amp; Access Advisor</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">IAM Policy Simulator</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- UNIT 3 -->
+  <div class="unit-header">
+    <div class="unit-badge">Unit 3</div>
+    <div class="unit-title">Compute Services — EC2 &amp; EBS</div>
+    <div class="unit-line"></div>
+  </div>
+
+  <!-- Module 4 EC2 -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 04</div>
+      <div class="mod-name">Amazon EC2 — Elastic Compute Cloud</div>
+      <div class="mod-count">8 topics · 8 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">EC2 Concepts — Virtualization, Instance Lifecycle</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Instance Types — General, Compute, Memory, Storage, GPU</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">AMIs — Amazon Machine Images, Custom AMIs</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Key Pairs — SSH Key Authentication</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Security Groups — Inbound/Outbound Rules</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Purchasing Options — On-Demand, Reserved, Spot, Dedicated</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">User Data — Bootstrap Scripts on Launch</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Elastic IP — Static Public IPs</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- Module 5 EBS -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 05</div>
+      <div class="mod-name">Amazon EBS — Elastic Block Store</div>
+      <div class="mod-count">6 topics · 6 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">EBS Overview — Block Storage vs Object vs File Storage</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">EBS Volume Types — gp2/gp3, io1/io2, st1, sc1</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">EBS Snapshots — Creating, Copying, Restoring</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">EBS Encryption — At-rest Encryption, KMS</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Modifying EBS Volume — Resize, Change Type</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Attaching &amp; Detaching EBS Volumes</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- UNIT 4 -->
+  <div class="unit-header">
+    <div class="unit-badge">Unit 4</div>
+    <div class="unit-title">Storage &amp; Networking</div>
+    <div class="unit-line"></div>
+  </div>
+
+  <!-- Module 6 S3 -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 06</div>
+      <div class="mod-name">Amazon S3 — Simple Storage Service</div>
+      <div class="mod-count">10 topics · 10 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">S3 Overview — Buckets, Objects, Keys</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Creating S3 Buckets — Naming, Region, Settings</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Storage Classes — Standard, IA, One Zone-IA, Glacier, Deep Archive</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Bucket Policies — JSON-based Access Control</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Pre-Signed URLs — Temporary Object Access</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">S3 Versioning — Enable, Suspend, Delete Markers</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Static Website Hosting on S3</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Lifecycle Policies — Transition &amp; Expiration Rules</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">S3 Replication — CRR (Cross-Region) &amp; SRR (Same-Region)</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">S3 Encryption — SSE-S3, SSE-KMS, SSE-C, Client-Side</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- Module 7 VPC -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 07</div>
+      <div class="mod-name">Amazon VPC — Virtual Private Cloud</div>
+      <div class="mod-count">8 topics · 8 done</div>
+      <div class="mod-progress"><div class="mod-fill done-fill" style="width:100%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">VPC Overview — Virtual Networking in AWS</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Subnets — Public vs Private, CIDR Planning</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Internet Gateway (IGW) — Enabling Internet Access</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Route Tables — Main &amp; Custom Route Tables</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Security Groups — Stateful Firewall at Instance Level</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Network ACLs — Stateless Firewall at Subnet Level</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Default VPC — What AWS Creates by Default</div><div class="t-type">Theory</div><div class="t-status s-done">Done</div></div>
+      <div class="topic"><div class="t-dot done-dot"></div><div class="t-name">Custom VPC Setup — Full Lab (VPC, Subnet, IGW, EC2)</div><div class="t-type">Lab</div><div class="t-status s-done">Done</div></div>
+    </div>
+  </div>
+
+  <!-- UNIT 5 -->
+  <div class="unit-header">
+    <div class="unit-badge">Unit 5</div>
+    <div class="unit-title">Advanced Services — Monitoring, Scaling &amp; Databases</div>
+    <div class="unit-line"></div>
+  </div>
+
+  <!-- Module 8 CloudWatch -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 08</div>
+      <div class="mod-name">CloudWatch, CloudTrail &amp; SNS</div>
+      <div class="mod-count">5 topics · 0 done</div>
+      <div class="mod-progress"><div class="mod-fill todo-fill" style="width:0%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon CloudWatch — Metrics, Dashboards, Log Groups</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">CloudWatch Alarms — Threshold Alerts, Auto Actions</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">AWS CloudTrail — API Audit Logging</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon SNS — Simple Notification Service</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">AWS Trusted Advisor — Cost, Security, Performance Checks</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+    </div>
+  </div>
+
+  <!-- Module 9 Scaling -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 09</div>
+      <div class="mod-name">Auto Scaling, ELB &amp; Route 53</div>
+      <div class="mod-count">6 topics · 0 done</div>
+      <div class="mod-progress"><div class="mod-fill todo-fill" style="width:0%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Elastic Load Balancing — ALB, NLB, CLB</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Auto Scaling Groups — Launch Templates, Policies</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">ELB + ASG Lab — High Availability Setup</div><div class="t-type">Lab</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon Route 53 — DNS Service, Routing Policies</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon CloudFront — CDN, Edge Locations</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">NAT Gateway — Private Subnet Internet Access</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+    </div>
+  </div>
+
+  <!-- Module 10 Databases -->
+  <div class="mod">
+    <div class="mod-head">
+      <div class="mod-num">Module 10</div>
+      <div class="mod-name">Databases &amp; Additional Services</div>
+      <div class="mod-count">7 topics · 0 done</div>
+      <div class="mod-progress"><div class="mod-fill todo-fill" style="width:0%"></div></div>
+    </div>
+    <div class="mod-body">
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon RDS — Relational DB Service, Engines, Multi-AZ</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon DynamoDB — NoSQL Key-Value Store</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon ElastiCache — Redis, Memcached Caching</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">AWS Lambda — Serverless Functions, Event Triggers</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">Amazon ECS &amp; ECR — Containers on AWS</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">AWS Cost Explorer &amp; Billing — Understanding Your Bill</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+      <div class="topic"><div class="t-dot todo-dot"></div><div class="t-name">AWS Certification Path — CLF-C02, SAA-C03 Overview</div><div class="t-type">Theory</div><div class="t-status s-todo">Pending</div></div>
+    </div>
+  </div>
+
+  <!-- EXAM DOMAIN MAP -->
+  <div class="unit-header" style="margin-top:44px;">
+    <div class="unit-badge" style="background:var(--s3);color:#FF9900;">AWS</div>
+    <div class="unit-title">Cloud Practitioner Exam Domain Mapping</div>
+    <div class="unit-line"></div>
+  </div>
+  <div class="domain-grid">
+    <div class="domain">
+      <div class="domain-pct">24%</div>
+      <div class="domain-name">Cloud Concepts</div>
+      <div class="domain-topics">Modules 00, 01, 02 — Cloud intro, AWS overview, Well-Architected</div>
+    </div>
+    <div class="domain">
+      <div class="domain-pct">30%</div>
+      <div class="domain-name">Security &amp; Compliance</div>
+      <div class="domain-topics">Module 03 — IAM, Shared Responsibility, MFA, Best Practices</div>
+    </div>
+    <div class="domain">
+      <div class="domain-pct">34%</div>
+      <div class="domain-name">Cloud Technology &amp; Services</div>
+      <div class="domain-topics">Modules 04–09 — EC2, EBS, S3, VPC, ELB, RDS, Lambda</div>
+    </div>
+    <div class="domain">
+      <div class="domain-pct">12%</div>
+      <div class="domain-name">Billing, Pricing &amp; Support</div>
+      <div class="domain-topics">Module 10 — Cost Explorer, Pricing Models, Support Plans</div>
+    </div>
+  </div>
+
+  <div style="margin-top:48px; padding:20px 0; border-top:1px solid var(--bdr); text-align:center; font-size:13px; color:var(--muted);">
+    <strong>IIMT University, Meerut · Cloud Computing (AWS) · 1st Semester</strong><br>
+    55 Topics across 10 Modules · 5 Course Units · Trainer: Sahil Kumar · <a href="https://cloudsynq.shop" target="_blank" style="color:var(--acc-d); text-decoration:none;">CloudSynq</a>
+  </div>
+
+</div>
