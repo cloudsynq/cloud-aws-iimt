@@ -5,6 +5,15 @@ Trainer: Sahil Kumar · [CloudSynq](https://cloudsynq.shop)
 
 ---
 
+## Quick Links
+
+| Resource | Link |
+|---|---|
+| 📋 Complete Syllabus (Unit-wise) | [Open in browser](syllabus.html) |
+| 📚 Recommended Resources | [View](resources.md) |
+
+---
+
 ## Topics Covered
 
 ### 00 · Introduction to Cloud Computing
@@ -52,13 +61,16 @@ Trainer: Sahil Kumar · [CloudSynq](https://cloudsynq.shop)
 
 ---
 
-### Coming Up
-RDS · Load Balancing & Auto Scaling · Route 53 · CloudFront · CloudWatch · Lambda
+## Coming Up
 
----
-
-## Useful Links
-- [Recommended videos and practice resources](resources.md)
+| Topic | Details |
+|---|---|
+| CloudWatch & CloudTrail | Monitoring, Alarms, Audit Logs |
+| Elastic Load Balancing | ALB, NLB, Target Groups |
+| Auto Scaling | Launch Templates, Scaling Policies |
+| Route 53 & CloudFront | DNS, CDN, Edge Locations |
+| Amazon RDS | Relational Databases, Multi-AZ |
+| AWS Lambda | Serverless Functions |
 
 ---
 
