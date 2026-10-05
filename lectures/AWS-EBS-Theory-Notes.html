@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS EBS — Theory Notes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:#FAFAF8;--surf:#FFFFFF;--surf2:#F4F2EE;--surf3:#ECEAE4;
+    --text:#1A1A16;--muted:#6A6458;
+    --acc:#FF9900;--acc2:#CC6600;--acc3:#FFF4E0;
+    --border:#E0DBD0;
+    --green:#2D7A2D;--grn-bg:#F0FAF0;
+    --blue:#1A5FAA;--blu-bg:#EEF4FF;
+    --red:#CC2200;--red-bg:#FFF0EE;
+    --shadow:0 2px 16px rgba(0,0,0,.08);
+  }
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0C0A04;--surf:#181408;--surf2:#211C0C;--surf3:#2A2410;
+    --text:#F0E8D0;--muted:#9A8A60;--acc:#FF9900;--acc2:#FFCC66;--acc3:#2A1A00;
+    --border:#302800;--green:#6DCB6D;--grn-bg:#0A1A0A;
+    --blue:#6AB0FF;--blu-bg:#050F25;--red:#FF7766;--red-bg:#200808;
+    --shadow:0 4px 24px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0C0A04;--surf:#181408;--surf2:#211C0C;--surf3:#2A2410;
+    --text:#F0E8D0;--muted:#9A8A60;--acc:#FF9900;--acc2:#FFCC66;--acc3:#2A1A00;
+    --border:#302800;--green:#6DCB6D;--grn-bg:#0A1A0A;
+    --blue:#6AB0FF;--blu-bg:#050F25;--red:#FF7766;--red-bg:#200808;
+    --shadow:0 4px 24px rgba(0,0,0,.6);
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.7;padding-inline:16px;}
+  .wrap{max-width:860px;margin:0 auto;padding-block:32px 72px;}
+
+  .hdr{background:linear-gradient(140deg,#1A0D00 0%,#2A1400 50%,#3A1A00 100%);border-radius:20px;padding:52px 48px;margin-bottom:36px;position:relative;overflow:hidden;color:#FFF;}
+  .hdr::before{content:'';position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(255,153,0,.25) 0%,transparent 65%);}
+  .service-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,153,0,.2);border:1px solid rgba(255,153,0,.4);border-radius:100px;padding:5px 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#FFCC66;margin-bottom:20px;font-family:'JetBrains Mono',monospace;}
+  .hdr h1{font-family:'Outfit',sans-serif;font-size:2.8rem;font-weight:900;line-height:1.1;text-wrap:balance;margin-bottom:12px;}
+  .hdr h1 span{color:#FF9900;}
+  .hdr p{font-size:1rem;color:rgba(255,255,255,.65);max-width:540px;}
+
+  .sec{display:flex;align-items:center;gap:12px;margin:36px 0 16px;}
+  .sec-num{width:32px;height:32px;border-radius:50%;background:var(--acc);color:#000;font-weight:800;font-family:'Outfit',sans-serif;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sec h2{font-family:'Outfit',sans-serif;font-size:1.25rem;font-weight:800;}
+
+  .card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .card h3{font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--acc2);}
+
+  .analogy{background:var(--acc3);border:2px solid var(--acc);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+  .analogy-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc2);margin-bottom:10px;display:block;}
+  .analogy h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px;}
+  .analogy p{font-size:14px;line-height:1.6;}
+
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+  .comp{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .comp-icon{font-size:1.8rem;margin-bottom:8px;display:block;}
+  .comp h4{font-family:'Outfit',sans-serif;font-weight:700;font-size:.9rem;margin-bottom:4px;color:var(--acc2);}
+  .comp p{font-size:12.5px;color:var(--muted);line-height:1.45;}
+
+  /* VOLUME TYPE CARDS */
+  .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-bottom:16px;}
+  .vcard{background:var(--surf);border-left:4px solid var(--border);border-radius:12px;padding:18px 20px;box-shadow:var(--shadow);}
+  .vcard.ssd{border-color:var(--acc);}
+  .vcard.hdd{border-color:var(--blue);}
+  .vtag{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:10px;}
+  .ssd .vtag{background:var(--acc3);color:var(--acc2);}
+  .hdd .vtag{background:var(--blu-bg);color:var(--blue);}
+  .vcard h4{font-family:'Outfit',sans-serif;font-weight:800;font-size:.95rem;margin-bottom:4px;}
+  .vcard .vspec{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);margin:6px 0;}
+  .vcard p{font-size:12.5px;color:var(--muted);line-height:1.4;}
+  .vcard .use{margin-top:8px;font-size:12px;color:var(--green);font-weight:600;}
+
+  .box{border-radius:10px;padding:16px 18px;margin:14px 0;border-left:4px solid;font-size:14px;}
+  .box-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+  .box.info{background:var(--blu-bg);border-color:var(--blue);}
+  .box.info .box-title{color:var(--blue);}
+  .box.tip{background:var(--grn-bg);border-color:var(--green);}
+  .box.tip .box-title{color:var(--green);}
+  .box.warn{background:var(--acc3);border-color:var(--acc);}
+  .box.warn .box-title{color:var(--acc2);}
+
+  .tbl{overflow-x:auto;margin:16px 0;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{background:var(--surf2);color:var(--acc2);font-family:'Outfit',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.04em;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:nth-child(even) td{background:var(--surf2);}
+
+  /* SNAPSHOT FLOW */
+  .flow{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin:16px 0;}
+  .fbox{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 18px;text-align:center;min-width:120px;}
+  .fbox .ficon{font-size:1.6rem;display:block;margin-bottom:6px;}
+  .fbox h4{font-family:'Outfit',sans-serif;font-size:.8rem;font-weight:700;margin-bottom:2px;}
+  .fbox p{font-size:11px;color:var(--muted);}
+  .farr{color:var(--muted);font-size:1.4rem;padding:0 6px;}
+
+  .steps{list-style:none;display:flex;flex-direction:column;gap:10px;margin:14px 0;}
+  .steps li{display:flex;align-items:flex-start;gap:12px;font-size:14px;}
+  .steps .sn{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--acc);color:#000;font-weight:800;font-family:'Outfit',sans-serif;font-size:12px;display:flex;align-items:center;justify-content:center;}
+
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+  .pill{background:var(--acc3);border:1px solid rgba(255,153,0,.4);border-radius:100px;padding:5px 14px;font-size:12.5px;font-weight:600;color:var(--acc2);}
+
+  .foot{text-align:center;padding-top:28px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin-top:16px;}
+  .foot b{color:var(--acc2);}
+
+  @media(max-width:600px){
+    .hdr{padding:28px 20px;}.hdr h1{font-size:1.8rem;}
+    .cgrid,.vgrid{grid-template-columns:1fr;}
+    .flow{flex-direction:column;align-items:flex-start;}
+    .farr{transform:rotate(90deg);}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hdr">
+    <div class="service-tag">💾 AWS Storage</div>
+    <h1>Amazon <span>EBS</span><br>Theory Notes</h1>
+    <p>Elastic Block Store — persistent hard drives for your EC2 instances. Complete beginner-friendly guide for 1st semester students.</p>
+  </header>
+
+  <!-- 1. WHAT IS EBS -->
+  <div class="sec"><div class="sec-num">1</div><h2>What is Amazon EBS?</h2></div>
+
+  <div class="card">
+    <p>When you launch an EC2 instance, it needs storage — just like your laptop needs a hard drive. <strong>Amazon EBS (Elastic Block Store)</strong> provides that storage. It's a <strong>network-attached, persistent block storage</strong> volume that you attach to EC2 instances.</p>
+    <br>
+    <p><strong>Persistent</strong> means the data survives even if the EC2 instance is stopped or restarted — just like your laptop's hard drive keeps your files even when you shut it down.</p>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">💿 Analogy — External Hard Drive</span>
+    <h3>Think of EBS like an external USB hard drive.</h3>
+    <p>You plug it into your laptop (EC2) and use it. If you shut down the laptop — the hard drive and its data are safe. You can unplug it and plug it into a different laptop (different EC2 instance). You can make a copy (snapshot) for backup.</p>
+    <br>
+    <p>The key difference: EBS volumes are attached over the <strong>network</strong>, not a physical cable. AWS handles all the hardware. You get fast, reliable storage without managing any disks.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">🔗</span>
+      <h4>Attached to EC2</h4>
+      <p>One EBS volume is attached to one EC2 instance at a time (except io1/io2 Multi-Attach).</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">📍</span>
+      <h4>Same Availability Zone</h4>
+      <p>An EBS volume and the EC2 it attaches to <strong>must be in the same AZ</strong>. Mumbai AZ-a volume → Mumbai AZ-a instance only.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">💾</span>
+      <h4>Persistent Storage</h4>
+      <p>Data survives stop/start of the EC2 instance. Only deleted when you explicitly delete it.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">📏</span>
+      <h4>Scalable Size</h4>
+      <p>Start with any size. Increase size later without stopping the instance (no downtime).</p>
+    </div>
+  </div>
+
+  <!-- 2. EBS vs INSTANCE STORE -->
+  <div class="sec"><div class="sec-num">2</div><h2>EBS vs Instance Store</h2></div>
+
+  <div class="card">
+    <p>EC2 instances can have two types of storage. It's important to know the difference — choosing the wrong one means losing data.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Feature</th><th>EBS Volume</th><th>Instance Store</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td>Network-attached block storage</td><td>Physically attached to the host hardware</td></tr>
+        <tr><td><strong>Persistence</strong></td><td>✅ Data persists on stop/restart</td><td>❌ Data is LOST on stop, termination, or failure</td></tr>
+        <tr><td><strong>Use for</strong></td><td>OS disk, databases, long-term data</td><td>Temporary caches, scratch space, buffers</td></tr>
+        <tr><td><strong>Snapshot</strong></td><td>✅ Yes — backup to S3</td><td>❌ No backup support</td></tr>
+        <tr><td><strong>Speed</strong></td><td>Very fast (gp3 up to 16,000 IOPS)</td><td>Fastest (direct physical connection)</td></tr>
+        <tr><td><strong>Cost</strong></td><td>Billed per GB provisioned</td><td>Included in instance price</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box warn">
+    <div class="box-title">Critical Rule</div>
+    <strong>Never store important data on Instance Store.</strong> If the EC2 instance stops, the data is gone — permanently. Always use EBS for any data you need to keep.
+  </div>
+
+  <!-- 3. VOLUME TYPES -->
+  <div class="sec"><div class="sec-num">3</div><h2>EBS Volume Types</h2></div>
+
+  <div class="card">
+    <p>EBS comes in 6 types. They fall into two categories: <strong>SSD-backed</strong> (fast, for low-latency workloads) and <strong>HDD-backed</strong> (cheaper, for large sequential reads).</p>
+    <br>
+    <p>Key term: <strong>IOPS</strong> = Input/Output Operations Per Second. Higher IOPS = faster disk. Think of it like how many files your hard drive can read/write per second.</p>
+  </div>
+
+  <p style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;color:var(--acc2);margin:16px 0 8px;">SSD-Backed (General Purpose &amp; High Performance)</p>
+  <div class="vgrid">
+    <div class="vcard ssd">
+      <span class="vtag">gp3 — General Purpose SSD</span>
+      <h4>Best for: Most workloads</h4>
+      <div class="vspec">Size: 1 GB – 16 TB · IOPS: up to 16,000</div>
+      <p>Latest generation. Faster and cheaper than gp2. IOPS and throughput are independently configurable. <strong>Default choice for new volumes.</strong></p>
+      <div class="use">✅ Use for: OS volumes, web servers, dev/test</div>
+    </div>
+    <div class="vcard ssd">
+      <span class="vtag">gp2 — General Purpose SSD (older)</span>
+      <h4>Previous generation</h4>
+      <div class="vspec">Size: 1 GB – 16 TB · IOPS: 3 IOPS/GB, max 16,000</div>
+      <p>Older version of gp3. IOPS is tied to volume size (bigger size = more IOPS). Still works fine but gp3 is recommended for new volumes.</p>
+      <div class="use">✅ Use for: Same as gp3, but prefer gp3</div>
+    </div>
+    <div class="vcard ssd">
+      <span class="vtag">io2 — Provisioned IOPS SSD</span>
+      <h4>Highest performance</h4>
+      <div class="vspec">Size: 4 GB – 64 TB · IOPS: up to 64,000</div>
+      <p>For mission-critical databases that need guaranteed, consistent, ultra-high performance. Expensive. io2 Block Express goes up to 256,000 IOPS.</p>
+      <div class="use">✅ Use for: Oracle DB, SAP HANA, large MySQL</div>
+    </div>
+    <div class="vcard ssd">
+      <span class="vtag">io1 — Provisioned IOPS SSD (older)</span>
+      <h4>Previous high-performance</h4>
+      <div class="vspec">Size: 4 GB – 16 TB · IOPS: up to 64,000</div>
+      <p>Older version of io2. Supports Multi-Attach (same volume on up to 16 instances). Use io2 for new deployments.</p>
+      <div class="use">✅ Use for: Critical DBs, Multi-Attach scenarios</div>
+    </div>
+  </div>
+
+  <p style="font-family:'Outfit',sans-serif;font-weight:700;font-size:.95rem;color:var(--blue);margin:16px 0 8px;">HDD-Backed (Throughput &amp; Cold Storage)</p>
+  <div class="vgrid">
+    <div class="vcard hdd">
+      <span class="vtag">st1 — Throughput Optimized HDD</span>
+      <h4>Large sequential reads</h4>
+      <div class="vspec">Size: 125 GB – 16 TB · Throughput: 500 MB/s</div>
+      <p>Good for big data, log processing, data warehouses. Cannot be a boot volume. Optimized for reading large files sequentially, not random access.</p>
+      <div class="use">✅ Use for: Big data, Hadoop, log files</div>
+    </div>
+    <div class="vcard hdd">
+      <span class="vtag">sc1 — Cold HDD</span>
+      <h4>Cheapest EBS option</h4>
+      <div class="vspec">Size: 125 GB – 16 TB · Throughput: 250 MB/s</div>
+      <p>Lowest cost per GB. For infrequently accessed data. Cannot be a boot volume. Think of it as an archive drive.</p>
+      <div class="use">✅ Use for: Archival, infrequently accessed files</div>
+    </div>
+  </div>
+
+  <div class="box info">
+    <div class="box-title">Quick Decision Guide</div>
+    <strong>New web server / OS volume?</strong> → gp3<br>
+    <strong>High-performance database?</strong> → io2<br>
+    <strong>Big data / log processing?</strong> → st1<br>
+    <strong>Cheapest archival storage?</strong> → sc1<br>
+    <strong>For all lab work?</strong> → gp2 or gp3 (free tier eligible up to 30 GB)
+  </div>
+
+  <!-- 4. SNAPSHOTS -->
+  <div class="sec"><div class="sec-num">4</div><h2>EBS Snapshots — Backup to S3</h2></div>
+
+  <div class="card">
+    <p>A <strong>Snapshot</strong> is a backup of your EBS volume saved to Amazon S3. You can use it to restore a volume, copy data to another region, or create a new volume from it.</p>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">📸 Analogy — Phone Backup</span>
+    <h3>Snapshot = backup of your phone to Google Drive / iCloud.</h3>
+    <p>Your phone (EC2 instance) keeps working normally. At any time you can take a backup (snapshot) of its storage (EBS) to the cloud (S3). If your phone breaks (instance crashes), you restore from the backup and get everything back. You can also restore the backup onto a different phone (different EC2 in a different region).</p>
+  </div>
+
+  <div class="flow">
+    <div class="fbox"><span class="ficon">💾</span><h4>EBS Volume</h4><p>Running data</p></div>
+    <div class="farr">→</div>
+    <div class="fbox" style="border-color:var(--acc);background:var(--acc3);"><span class="ficon">📸</span><h4>Snapshot</h4><p>Stored in S3</p></div>
+    <div class="farr">→</div>
+    <div class="fbox"><span class="ficon">🔄</span><h4>Restore</h4><p>New EBS volume</p></div>
+    <div class="farr">→</div>
+    <div class="fbox"><span class="ficon">🌍</span><h4>Copy to Region</h4><p>Disaster recovery</p></div>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">📦</span>
+      <h4>Incremental Snapshots</h4>
+      <p>First snapshot = full backup. Every snapshot after = only the changes. Saves space and cost.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🌐</span>
+      <h4>Cross-Region Copy</h4>
+      <p>Copy a snapshot to any other AWS region. Used for disaster recovery — if one region fails, restore in another.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🖼️</span>
+      <h4>Create AMI from Snapshot</h4>
+      <p>Turn a snapshot into an AMI (OS image). Launch identical EC2 instances anywhere in the world.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🔄</span>
+      <h4>Snapshot Recycle Bin</h4>
+      <p>Accidentally deleted a snapshot? AWS keeps it in Recycle Bin for up to 365 days before permanent deletion.</p>
+    </div>
+  </div>
+
+  <!-- 5. ENCRYPTION -->
+  <div class="sec"><div class="sec-num">5</div><h2>EBS Encryption</h2></div>
+
+  <div class="card">
+    <p>EBS encryption protects your data at rest (stored on disk) and in transit (moving between EBS and EC2). It uses <strong>AES-256</strong> encryption and AWS manages the keys automatically via AWS KMS.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>What Gets Encrypted?</th><th>Details</th></tr></thead>
+      <tbody>
+        <tr><td>Data at rest on the volume</td><td>All data written to the EBS volume is encrypted</td></tr>
+        <tr><td>Data in transit</td><td>Data moving between EC2 and EBS is encrypted</td></tr>
+        <tr><td>Snapshots</td><td>Snapshots of encrypted volumes are automatically encrypted</td></tr>
+        <tr><td>Volumes from encrypted snapshots</td><td>Any volume created from an encrypted snapshot is encrypted</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box tip">
+    <div class="box-title">Zero Performance Impact</div>
+    EBS encryption has <strong>no measurable performance overhead</strong> — it runs transparently in the background. There is no reason NOT to encrypt. Always enable encryption, especially for volumes storing user data, passwords, or financial records.
+  </div>
+
+  <!-- 6. MODIFYING VOLUMES -->
+  <div class="sec"><div class="sec-num">6</div><h2>Modifying Volumes — No Downtime</h2></div>
+
+  <div class="card">
+    <p>One of the most powerful EBS features: you can <strong>increase volume size, change volume type, or adjust IOPS while the instance is running</strong>. No restart needed.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">📈</span>
+      <h4>Increase Size</h4>
+      <p>Expand from 20 GB to 100 GB while EC2 is running. Then extend the file system (using OS commands) to use the new space.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">⚡</span>
+      <h4>Change Type</h4>
+      <p>Switch from gp2 to gp3 for better performance and lower cost — live, with no downtime.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🎚️</span>
+      <h4>Adjust IOPS</h4>
+      <p>Increase IOPS on io1/io2 volumes when your database needs more performance during peak load.</p>
+    </div>
+  </div>
+
+  <div class="box warn">
+    <div class="box-title">One-Way Rule — Can't Shrink!</div>
+    You can <strong>increase</strong> an EBS volume size but you <strong>cannot decrease</strong> it. If you need a smaller volume, create a new smaller one and copy the data. Always plan your initial size carefully.
+  </div>
+
+  <!-- 7. ATTACH / DETACH -->
+  <div class="sec"><div class="sec-num">7</div><h2>Attach, Detach, and Move Volumes</h2></div>
+
+  <div class="card">
+    <p>EBS volumes are like USB hard drives — you can plug them in (attach) and unplug them (detach) from EC2 instances, as long as they are in the <strong>same Availability Zone</strong>.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Operation</th><th>Requirement</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Attach</strong></td><td>Same AZ as EC2</td><td>Root volume attached at launch. Extra volumes can be attached anytime.</td></tr>
+        <tr><td><strong>Detach</strong></td><td>Volume not in use (or unmounted)</td><td>Safely detach data volumes. Root volume: must stop instance first.</td></tr>
+        <tr><td><strong>Move to another AZ</strong></td><td>Take snapshot → Create volume in new AZ</td><td>Direct move not possible — use snapshot as intermediary.</td></tr>
+        <tr><td><strong>Move to another Region</strong></td><td>Copy snapshot to new region → Create volume</td><td>Snapshot copy crosses regions, not volumes directly.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 8. ROOT vs DATA -->
+  <div class="sec"><div class="sec-num">8</div><h2>Root Volume vs Data Volume</h2></div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">🥾</span>
+      <h4>Root Volume</h4>
+      <p>The boot disk — contains the OS (Linux/Windows). Created automatically when you launch EC2. <strong>Deleted by default</strong> when instance is terminated (can be changed).</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">📁</span>
+      <h4>Data Volume</h4>
+      <p>Additional volumes you attach yourself. For storing app data, databases, files. <strong>Not deleted on termination</strong> by default. Can be detached and moved.</p>
+    </div>
+  </div>
+
+  <div class="box info">
+    <div class="box-title">Protect Your Root Volume</div>
+    By default, the root volume is deleted when an EC2 instance is terminated. To prevent accidental data loss, change the "Delete on Termination" setting to <strong>No</strong> when launching. This keeps the root volume even after termination.
+  </div>
+
+  <!-- 9. COMPARISON -->
+  <div class="sec"><div class="sec-num">9</div><h2>AWS EBS vs Azure Managed Disks</h2></div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Concept</th><th>AWS EBS</th><th>Azure Managed Disk</th></tr></thead>
+      <tbody>
+        <tr><td>Service Name</td><td>Elastic Block Store (EBS)</td><td>Azure Managed Disks</td></tr>
+        <tr><td>General Purpose SSD</td><td>gp3 / gp2</td><td>Standard SSD (E-series)</td></tr>
+        <tr><td>High Performance SSD</td><td>io2 / io1</td><td>Premium SSD (P-series) / Ultra Disk</td></tr>
+        <tr><td>HDD / Cold Storage</td><td>st1 / sc1</td><td>Standard HDD (S-series)</td></tr>
+        <tr><td>Backup</td><td>EBS Snapshot (stored in S3)</td><td>Azure Snapshot / Azure Backup</td></tr>
+        <tr><td>Encryption</td><td>KMS-managed, AES-256</td><td>SSE (Server-Side Encryption) with platform or customer key</td></tr>
+        <tr><td>Scope</td><td>Single Availability Zone</td><td>Single region (can be zone-redundant)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 10. KEY SUMMARY -->
+  <div class="sec"><div class="sec-num">10</div><h2>Key Summary</h2></div>
+
+  <div class="card">
+    <ul class="steps">
+      <li><span class="sn">1</span><div><strong>EBS</strong> = network-attached persistent block storage for EC2. Like a USB hard drive that survives shutdowns.</div></li>
+      <li><span class="sn">2</span><div><strong>Same AZ rule</strong> = EBS volume and EC2 must be in the same Availability Zone. To move across AZs, use snapshots.</div></li>
+      <li><span class="sn">3</span><div><strong>Volume Types</strong> = gp3 (default, general purpose) · io2 (high-performance DBs) · st1 (big data) · sc1 (cheapest archive).</div></li>
+      <li><span class="sn">4</span><div><strong>Snapshots</strong> = incremental backups stored in S3. Use them to backup, restore, copy across regions, or create AMIs.</div></li>
+      <li><span class="sn">5</span><div><strong>Encryption</strong> = always enable it. AES-256, zero performance impact, managed by AWS KMS automatically.</div></li>
+      <li><span class="sn">6</span><div><strong>Elastic Volumes</strong> = increase size, change type, or adjust IOPS without stopping the instance. Cannot shrink size.</div></li>
+      <li><span class="sn">7</span><div><strong>Root vs Data volume</strong> = root has the OS (deleted on termination by default). Data volumes survive termination by default.</div></li>
+      <li><span class="sn">8</span><div><strong>Instance Store</strong> ≠ EBS. Instance Store is faster but loses all data on stop/termination. Never store important data there.</div></li>
+    </ul>
+  </div>
+
+  <div class="pills">
+    <span class="pill">EBS = persistent disk</span>
+    <span class="pill">Same AZ rule</span>
+    <span class="pill">gp3 = default choice</span>
+    <span class="pill">io2 = high-performance DB</span>
+    <span class="pill">Snapshot = S3 backup</span>
+    <span class="pill">Encrypted by default</span>
+    <span class="pill">Can grow, can't shrink</span>
+    <span class="pill">Instance Store = temporary</span>
+  </div>
+
+  <footer class="foot">
+    <b>Amazon EBS — Elastic Block Store</b> · Theory Notes · Cloud Computing, 1st Semester
+  </footer>
+
+</div>
+</body>
+</html>

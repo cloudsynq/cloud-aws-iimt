@@ -1,0 +1,494 @@
+<title>AWS S3 Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:      #0C0A04;
+    --surf:    #181408;
+    --surf2:   #211C0C;
+    --surf3:   #2A2410;
+    --text:    #F0E8D0;
+    --muted:   #9A8A60;
+    --light:   #5A4E30;
+    --acc:     #FF9900;
+    --acc2:    #FFCC66;
+    --acc3:    #FFF4CC;
+    --aws:     #232F3E;
+    --border:  #302800;
+    --green:   #6DCB6D;
+    --grn-bg:  #0A1A0A;
+    --blue:    #6AB0FF;
+    --blu-bg:  #050F25;
+    --red:     #FF7766;
+    --red-bg:  #200808;
+    --shadow:  0 4px 24px rgba(0,0,0,.6);
+    color-scheme: dark;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.65;
+    padding-inline: 16px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding-block: 32px 72px; }
+
+  /* HEADER */
+  .hdr {
+    border-radius: 20px;
+    padding: 48px;
+    margin-bottom: 30px;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(140deg, #0A0800 0%, #1A1000 40%, #2A1A00 100%);
+    border: 1px solid #3A2800;
+  }
+  .hdr::before {
+    content:'';
+    position:absolute; top:-100px; right:-100px;
+    width:420px; height:420px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,153,0,.18) 0%, transparent 65%);
+  }
+  .hdr::after {
+    content:'';
+    position:absolute; bottom:-60px; left:10%;
+    width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,204,102,.06) 0%, transparent 70%);
+  }
+  .lab-tag {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,153,0,.15); border:1px solid rgba(255,153,0,.35);
+    border-radius:100px; padding:5px 16px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px; font-weight:600; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--acc2); margin-bottom:20px;
+  }
+  .hdr h1 {
+    font-family:'Outfit',sans-serif;
+    font-size:2.6rem; font-weight:900;
+    color:#FFF; line-height:1.1;
+    text-wrap:balance; margin-bottom:12px;
+  }
+  .hdr h1 span { color:var(--acc); }
+  .hdr p { font-size:1rem; color:rgba(255,255,255,.6); margin-bottom:22px; max-width:520px; }
+  .lab-chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .lc {
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+    color:rgba(255,255,255,.75); border-radius:100px;
+    padding:5px 14px; font-size:12px; font-weight:500;
+  }
+
+  /* DIVIDER */
+  .div {
+    display:flex; align-items:center; gap:12px;
+    margin:32px 0 18px;
+  }
+  .div-line { flex:1; height:1px; background:var(--border); }
+  .div-lbl {
+    font-family:'Outfit',sans-serif; font-weight:700;
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--muted); white-space:nowrap;
+  }
+
+  /* STEP CARD */
+  .step {
+    background:var(--surf);
+    border:1px solid var(--border);
+    border-radius:16px;
+    margin-bottom:16px;
+    overflow:hidden;
+    box-shadow:var(--shadow);
+  }
+  .step-hd {
+    display:flex; align-items:center; gap:16px;
+    padding:20px 24px;
+    background:var(--surf2);
+    border-bottom:1px solid var(--border);
+  }
+  .snum {
+    flex-shrink:0;
+    width:44px; height:44px;
+    background:linear-gradient(135deg,#FF9900,#CC6600);
+    border-radius:13px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Outfit',sans-serif; font-weight:800; font-size:1.1rem;
+    color:#FFF; box-shadow:0 2px 10px rgba(255,153,0,.4);
+  }
+  .step-title { font-family:'Outfit',sans-serif; font-weight:700; font-size:1.1rem; }
+  .step-sub   { font-size:12.5px; color:var(--muted); margin-top:2px; }
+  .step-body  { padding:24px; }
+
+  /* INSTRUCTION LIST */
+  .ilist { list-style:none; display:flex; flex-direction:column; gap:11px; }
+  .ilist li {
+    display:flex; align-items:flex-start; gap:14px;
+    background:var(--surf2); border-radius:10px;
+    padding:13px 16px; font-size:14px;
+  }
+  .inum {
+    flex-shrink:0; width:26px; height:26px;
+    background:var(--acc); border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px;
+    font-weight:700; color:#000;
+  }
+  .ilist b { color:var(--acc2); }
+  .path {
+    display:block; margin-top:8px;
+    background:var(--surf3); border:1px solid var(--border);
+    border-radius:8px; padding:8px 14px;
+    font-family:'JetBrains Mono',monospace; font-size:12.5px;
+    color:var(--acc2); overflow-x:auto; white-space:nowrap;
+  }
+  .path .arr { color:var(--muted); margin:0 5px; }
+
+  /* CODE */
+  .code { background:#060400; border:1px solid var(--border); border-radius:10px; overflow:hidden; margin:14px 0; }
+  .code-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:8px 16px; background:var(--surf3); border-bottom:1px solid var(--border);
+  }
+  .code-lang { font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:600; color:var(--acc); letter-spacing:.06em; text-transform:uppercase; }
+  .code pre { font-family:'JetBrains Mono',monospace; font-size:12.5px; line-height:1.7; color:#D0C8A8; padding:16px 20px; overflow-x:auto; }
+  .k { color:#6AB0FF; } .v { color:#FF9900; } .s { color:#FFCC66; } .c { color:#4A4030; font-style:italic; }
+
+  /* BOX */
+  .box { border-radius:10px; padding:15px 18px; margin:14px 0; border-left:4px solid; font-size:13.5px; }
+  .box-h { font-family:'Outfit',sans-serif; font-weight:700; font-size:12px; letter-spacing:.04em; text-transform:uppercase; margin-bottom:6px; }
+  .box.info { background:rgba(106,176,255,.08); border-color:var(--blue); }
+  .box.info .box-h { color:var(--blue); }
+  .box.tip  { background:var(--grn-bg); border-color:var(--green); }
+  .box.tip .box-h  { color:var(--green); }
+  .box.warn { background:rgba(255,153,0,.08); border-color:var(--acc); }
+  .box.warn .box-h { color:var(--acc2); }
+  .box.ok   { background:rgba(109,203,109,.06); border-color:var(--green); }
+  .box.ok .box-h { color:var(--green); }
+
+  /* CONCEPT GRID */
+  .cgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; margin:14px 0; }
+  .ccard { background:var(--surf2); border:1px solid var(--border); border-radius:12px; padding:18px 16px; }
+  .ccard-icon { font-size:1.8rem; margin-bottom:8px; display:block; }
+  .ccard h4 { font-family:'Outfit',sans-serif; font-size:.88rem; font-weight:700; margin-bottom:4px; }
+  .ccard p  { font-size:12px; color:var(--muted); line-height:1.4; margin:0; }
+
+  /* TABLE */
+  .tbl { overflow-x:auto; margin:14px 0; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { background:var(--surf3); color:var(--acc2); font-family:'Outfit',sans-serif; font-weight:600; font-size:11.5px; letter-spacing:.04em; text-align:left; padding:10px 14px; border-bottom:1px solid var(--border); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  tr:hover td { background:var(--surf2); }
+
+  /* QUIZ */
+  .quiz { background:linear-gradient(135deg,#0C0800,#1A1000); border:1px solid #3A2800; border-radius:16px; padding:30px; margin-top:28px; }
+  .quiz h3 { font-family:'Outfit',sans-serif; font-weight:800; font-size:1.1rem; color:#FFF; margin-bottom:18px; }
+  .qlist { list-style:none; display:flex; flex-direction:column; gap:10px; }
+  .qi { display:flex; align-items:flex-start; gap:12px; background:rgba(255,255,255,.05); border-radius:10px; padding:13px 16px; font-size:13.5px; }
+  .qi-icon { flex-shrink:0; font-size:1rem; }
+
+  .foot { text-align:center; padding-top:28px; margin-top:12px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; }
+  .foot b { color:var(--acc); }
+
+  @media (max-width:600px) {
+    .step-body { padding:16px; }
+    .hdr { padding:28px 20px; }
+    .hdr h1 { font-size:1.7rem; }
+    .cgrid { grid-template-columns:1fr 1fr; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="hdr">
+    <div class="lab-tag">🔬 Hands-On Lab · Amazon S3</div>
+    <h1>AWS <span>S3</span><br>Lab Presentation</h1>
+    <p>Step-by-step practical guide. 6 hands-on labs — by the end you will have created a fully working S3 bucket with uploads, versioning, pre-signed URLs, and a hosted website.</p>
+    <div class="lab-chips">
+      <span class="lc">Lab 1: Create Bucket</span>
+      <span class="lc">Lab 2: Upload &amp; Access</span>
+      <span class="lc">Lab 3: Pre-signed URL</span>
+      <span class="lc">Lab 4: Versioning</span>
+      <span class="lc">Lab 5: Lifecycle Policy</span>
+      <span class="lc">Lab 6: Static Website</span>
+    </div>
+  </header>
+
+  <!-- PREREQUISITES -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Before You Start</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">✓</div>
+      <div><div class="step-title">Prerequisites — Check These First</div><div class="step-sub">Make sure everything is ready before opening the console</div></div>
+    </div>
+    <div class="step-body">
+      <div class="cgrid">
+        <div class="ccard"><span class="ccard-icon">🌐</span><h4>AWS Account</h4><p>Free tier account. Console: console.aws.amazon.com</p></div>
+        <div class="ccard"><span class="ccard-icon">👤</span><h4>IAM User Login</h4><p>Log in as an IAM user, NOT the root account.</p></div>
+        <div class="ccard"><span class="ccard-icon">📄</span><h4>Test Files Ready</h4><p>Have 2–3 files on your laptop: 1 image, 1 PDF, 1 text file.</p></div>
+        <div class="ccard"><span class="ccard-icon">🌍</span><h4>Region</h4><p>Set region to ap-south-1 (Asia Pacific Mumbai) in top-right corner.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LAB 1 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 1 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">1</div>
+      <div><div class="step-title">Create an S3 Bucket</div><div class="step-sub">Your storage container — must be globally unique</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        A Bucket is the top-level container for all your files in S3. Think of it like creating a new account on Google Drive — before you can store anything, you need the account.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Open AWS Console and go to <b>S3</b><span class="path">Services <span class="arr">→</span> Storage <span class="arr">→</span> S3</span></div></li>
+        <li><span class="inum">2</span><div>Click <b>Create bucket</b> (orange button, top right)</div></li>
+        <li><span class="inum">3</span><div>Fill in the settings:
+          <div class="code"><div class="code-bar"><span class="code-lang">Settings</span></div>
+            <pre><span class="k">Bucket name</span>     : <span class="s">iimt-lab-yourname-2026</span>  <span class="c"># make it unique — add your name</span>
+<span class="k">AWS Region</span>      : <span class="v">Asia Pacific (Mumbai) ap-south-1</span>
+<span class="k">Block Public Access</span>: <span class="v">ON (all checkboxes ticked)</span>  <span class="c"># keep default</span>
+<span class="k">Versioning</span>      : <span class="v">Disabled</span>  <span class="c"># we will enable in Lab 4</span>
+<span class="k">Default encryption</span>: <span class="v">SSE-S3</span>  <span class="c"># default, automatic</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">4</span><div>Scroll down and click <b>Create bucket</b></div></li>
+        <li><span class="inum">5</span><div>You should see your bucket in the list. Click on it to open.</div></li>
+      </ul>
+      <div class="box ok"><div class="box-h">Expected Result</div>Bucket is created and appears in the S3 bucket list. Status shows 0 objects.</div>
+    </div>
+  </div>
+
+  <!-- LAB 2 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 2 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">2</div>
+      <div><div class="step-title">Upload Files &amp; Test Access</div><div class="step-sub">Upload files, copy the URL, see what happens</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We will upload a file, try to open its URL in the browser — and see the "Access Denied" error that proves S3 is private by default. Then we make the object public and try again.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Inside your bucket → Click <b>Upload</b><span class="path">Bucket <span class="arr">→</span> Upload</span></div></li>
+        <li><span class="inum">2</span><div>Click <b>Add files</b> → Select an image from your laptop → Click <b>Upload</b></div></li>
+        <li><span class="inum">3</span><div>After upload, click on the file name to open its details</div></li>
+        <li><span class="inum">4</span><div>Find <b>Object URL</b> → Click <b>Copy</b></div></li>
+        <li><span class="inum">5</span><div>Paste the URL in a <b>new browser tab</b> and press Enter<br>You should see: <b>AccessDenied</b> error — this is correct!</div></li>
+      </ul>
+      <div class="box warn">
+        <div class="box-h">Why AccessDenied?</div>
+        The bucket has <strong>Block Public Access = ON</strong>. No one can access files without authorization. This is correct and secure. To give access, we use a Pre-signed URL (Lab 3) — NOT making the bucket public unless we truly need to.
+      </div>
+    </div>
+  </div>
+
+  <!-- LAB 3 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 3 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">3</div>
+      <div><div class="step-title">Generate a Pre-signed URL</div><div class="step-sub">Create a temporary URL that expires — share files safely</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        A Pre-signed URL gives temporary access to a private file. After the expiry time, the URL stops working — perfect for sharing files securely without making the bucket public.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Click on the uploaded file → Look for the <b>Object actions</b> dropdown (top right)</div></li>
+        <li><span class="inum">2</span><div>Click <b>Share with a presigned URL</b></div></li>
+        <li><span class="inum">3</span><div>Set the expiry time:
+          <div class="code"><div class="code-bar"><span class="code-lang">Pre-signed URL Settings</span></div>
+            <pre><span class="k">Time interval</span> : <span class="v">Minutes</span>
+<span class="k">Duration</span>      : <span class="s">5</span>  <span class="c"># 5 minutes — short for demo purposes</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">4</span><div>Click <b>Create presigned URL</b> → Click <b>Copy presigned URL</b></div></li>
+        <li><span class="inum">5</span><div>Paste in a new browser tab → The file <b>opens successfully!</b></div></li>
+        <li><span class="inum">6</span><div><b>Wait 5 minutes</b> → Try the same URL again → Now you get <b>AccessDenied</b> — the URL expired!</div></li>
+      </ul>
+      <div class="box tip">
+        <div class="box-h">Classroom Demo Tip</div>
+        Set expiry to 1 minute for live demo. After 1 minute, open the URL again in front of the class to show it has expired. This clearly demonstrates the time-limited, secure nature of Pre-signed URLs.
+      </div>
+    </div>
+  </div>
+
+  <!-- LAB 4 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 4 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">4</div>
+      <div><div class="step-title">Enable Versioning</div><div class="step-sub">Keep every version of every file — never lose data</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We will enable versioning on the bucket, then upload the same file twice. S3 will keep both versions. We will then restore the older version to demonstrate recovery.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>In your bucket → Click <b>Properties</b> tab<span class="path">Bucket <span class="arr">→</span> Properties tab</span></div></li>
+        <li><span class="inum">2</span><div>Scroll to <b>Bucket Versioning</b> → Click <b>Edit</b> → Select <b>Enable</b> → Click <b>Save changes</b></div></li>
+        <li><span class="inum">3</span><div>Go to <b>Objects</b> tab → Click <b>Upload</b> → Upload the same image file from your laptop again (must be the same filename)</div></li>
+        <li><span class="inum">4</span><div>Enable the <b>Show versions</b> toggle (top right of the objects list)<br>You should now see <b>2 versions</b> of the same file — each with a different Version ID!</div></li>
+        <li><span class="inum">5</span><div>Click on the <b>older version</b> (it will have an older timestamp) → Click <b>Download</b> → This is version 1 recovery!</div></li>
+        <li><span class="inum">6</span><div>Now <b>delete</b> the latest version by selecting it and clicking <b>Delete</b><br>The older version automatically becomes the current version.</div></li>
+      </ul>
+      <div class="box ok"><div class="box-h">What You Proved</div>S3 Versioning keeps all copies of a file. Deleting the latest version does not delete the data — it reveals the previous version.</div>
+    </div>
+  </div>
+
+  <!-- LAB 5 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 5 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">5</div>
+      <div><div class="step-title">Create a Lifecycle Policy</div><div class="step-sub">Auto-move objects to cheaper storage after a set number of days</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We will create a rule: "After 30 days, move objects to Standard-IA (cheaper). After 90 days, move to Glacier. After 365 days, delete them." This runs automatically — you don't need to do anything manually.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>In your bucket → Click <b>Management</b> tab<span class="path">Bucket <span class="arr">→</span> Management tab</span></div></li>
+        <li><span class="inum">2</span><div>Under <b>Lifecycle rules</b> → Click <b>Create lifecycle rule</b></div></li>
+        <li><span class="inum">3</span><div>Fill in:
+          <div class="code"><div class="code-bar"><span class="code-lang">Lifecycle Rule Settings</span></div>
+            <pre><span class="k">Rule name</span>  : <span class="s">archive-old-files</span>
+<span class="k">Rule scope</span> : <span class="v">Apply to all objects in the bucket</span>
+              <span class="c"># tick the acknowledgement checkbox</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">4</span><div>Under <b>Lifecycle rule actions</b> → Tick: <b>Transition current versions of objects between storage classes</b></div></li>
+        <li><span class="inum">5</span><div>Add transitions:
+          <div class="code"><div class="code-bar"><span class="code-lang">Transitions</span></div>
+            <pre><span class="k">Transition 1</span>: <span class="v">Standard-IA</span>    after <span class="s">30</span>  days
+<span class="k">Transition 2</span>: <span class="v">Glacier Flexible</span> after <span class="s">90</span>  days
+<span class="k">Expiration</span>  : <span class="v">Delete object</span>   after <span class="s">365</span> days</pre>
+          </div>
+        </div></li>
+        <li><span class="inum">6</span><div>Click <b>Create rule</b></div></li>
+      </ul>
+      <div class="box tip">
+        <div class="box-h">Teaching Tip</div>
+        Explain to students: "You don't need to remember to move files. AWS will do it automatically based on this rule. This saves money without any manual work."
+      </div>
+    </div>
+  </div>
+
+  <!-- LAB 6 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 6 of 6</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">6</div>
+      <div><div class="step-title">Host a Static Website on S3</div><div class="step-sub">Deploy a real webpage — no server needed</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We will create a simple HTML file on our laptop, upload it to S3, enable static website hosting, and open the website in a browser — with a real URL!
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Create a file called <b>index.html</b> on your laptop with this content:
+          <div class="code"><div class="code-bar"><span class="code-lang">index.html</span></div>
+            <pre><span class="k">&lt;html&gt;</span>
+  <span class="k">&lt;head&gt;</span>
+    <span class="k">&lt;title&gt;</span><span class="s">IIMT Cloud Lab</span><span class="k">&lt;/title&gt;</span>
+  <span class="k">&lt;/head&gt;</span>
+  <span class="k">&lt;body</span> <span class="v">style</span>=<span class="s">"font-family:Arial; text-align:center; padding:60px; background:#fff8f0"</span><span class="k">&gt;</span>
+    <span class="k">&lt;h1</span> <span class="v">style</span>=<span class="s">"color:#FF9900"</span><span class="k">&gt;</span><span class="s">🎉 My First S3 Website!</span><span class="k">&lt;/h1&gt;</span>
+    <span class="k">&lt;p&gt;</span><span class="s">Hosted on Amazon S3. No server required.</span><span class="k">&lt;/p&gt;</span>
+    <span class="k">&lt;p&gt;</span><span class="s">Built by: YOUR NAME HERE</span><span class="k">&lt;/p&gt;</span>
+  <span class="k">&lt;/body&gt;</span>
+<span class="k">&lt;/html&gt;</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">2</span><div>Create a NEW bucket for the website (website bucket needs different settings):<br>
+          <b>Name</b>: <code>iimt-website-yourname</code> · <b>Block Public Access: TURN OFF</b> → tick the acknowledgement box</div></li>
+        <li><span class="inum">3</span><div>Upload <b>index.html</b> to this new bucket</div></li>
+        <li><span class="inum">4</span><div>Go to <b>Properties</b> tab → Scroll to <b>Static website hosting</b> → Click <b>Edit</b><br>
+          Enable it → Index document: <code>index.html</code> → Error document: <code>error.html</code> → <b>Save</b></div></li>
+        <li><span class="inum">5</span><div>Go to <b>Permissions</b> tab → <b>Bucket policy</b> → <b>Edit</b> → Paste this policy:
+          <div class="code"><div class="code-bar"><span class="code-lang">Bucket Policy JSON</span></div>
+            <pre>{
+  <span class="k">"Version"</span>: <span class="s">"2012-10-17"</span>,
+  <span class="k">"Statement"</span>: [{
+    <span class="k">"Effect"</span>: <span class="s">"Allow"</span>,
+    <span class="k">"Principal"</span>: <span class="s">"*"</span>,
+    <span class="k">"Action"</span>: <span class="s">"s3:GetObject"</span>,
+    <span class="k">"Resource"</span>: <span class="s">"arn:aws:s3:::iimt-website-yourname/*"</span>
+                  <span class="c">// replace with your actual bucket name</span>
+  }]
+}</pre>
+          </div>
+        </div></li>
+        <li><span class="inum">6</span><div>Go to <b>Properties</b> → <b>Static website hosting</b> → Copy the <b>Bucket website endpoint</b> URL<br>
+          Open it in a browser — <b>your website is live!</b></div></li>
+      </ul>
+      <div class="box ok">
+        <div class="box-h">Expected Result</div>
+        You should see your HTML page in the browser at a URL like:<br>
+        <code>http://iimt-website-yourname.s3-website.ap-south-1.amazonaws.com</code><br><br>
+        ✅ A real website — no server, no Nginx, no EC2 — just S3!
+      </div>
+    </div>
+  </div>
+
+  <!-- RECAP TABLE -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab Recap</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">📋</div>
+      <div><div class="step-title">What We Did Today — Quick Reference</div></div>
+    </div>
+    <div class="step-body">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Lab</th><th>What We Did</th><th>Key Learning</th></tr></thead>
+          <tbody>
+            <tr><td><b style="color:var(--acc)">Lab 1</b></td><td>Created an S3 Bucket</td><td>Bucket name must be globally unique</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 2</b></td><td>Uploaded file, saw AccessDenied</td><td>S3 is private by default</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 3</b></td><td>Generated Pre-signed URL</td><td>Temporary, expiring access — no public access needed</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 4</b></td><td>Enabled Versioning</td><td>Every upload is saved; delete = Delete Marker, not permanent</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 5</b></td><td>Created Lifecycle Policy</td><td>AWS auto-moves objects to cheaper storage — saves money</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 6</b></td><td>Hosted a Static Website</td><td>S3 can serve a real website with zero server setup</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="quiz">
+    <h3>🎯 Ask Students These Questions</h3>
+    <ul class="qlist">
+      <li class="qi"><span class="qi-icon">❓</span><div>You upload <code>resume.pdf</code> to an S3 bucket and share its URL with your friend. They get <strong>AccessDenied</strong>. Why? How do you fix it properly without making the bucket public?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>What is the difference between a <strong>Pre-signed URL</strong> and making a bucket public? When would you use each?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>Your company stores 1 million log files. Logs from the last 30 days are checked daily. Older logs are checked once a year. After 5 years, logs must be deleted. Design a Lifecycle Policy.</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>You enabled versioning on a bucket and uploaded <code>report.docx</code> three times. How many objects does AWS store? What happens when you "delete" it?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>Name the <strong>cheapest S3 storage class</strong> and what are its limitations? When would you use it?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>You want to host a static portfolio website for free on AWS. What service do you use and what are the steps?</div></li>
+    </ul>
+  </div>
+
+  <footer class="foot" style="margin-top:32px;">
+    <b>AWS S3 — Amazon Simple Storage Service</b><br>
+    Lab Presentation · Cloud Computing
+  </footer>
+
+</div>

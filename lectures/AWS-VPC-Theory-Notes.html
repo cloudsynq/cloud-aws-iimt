@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS VPC — Theory Notes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:      #FAFAF8;
+    --surf:    #FFFFFF;
+    --surf2:   #F4F2EE;
+    --surf3:   #ECEAE4;
+    --text:    #1A1A16;
+    --muted:   #6A6458;
+    --light:   #9A9080;
+    --acc:     #FF9900;
+    --acc2:    #CC6600;
+    --acc3:    #FFF4E0;
+    --border:  #E0DBD0;
+    --green:   #2D7A2D;
+    --grn-bg:  #F0FAF0;
+    --blue:    #1A5FAA;
+    --blu-bg:  #EEF4FF;
+    --red:     #CC2200;
+    --red-bg:  #FFF0EE;
+    --shadow:  0 2px 16px rgba(0,0,0,.08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0C0A04; --surf:#181408; --surf2:#211C0C; --surf3:#2A2410;
+      --text:#F0E8D0; --muted:#9A8A60; --light:#5A4E30;
+      --acc:#FF9900; --acc2:#FFCC66; --acc3:#2A1A00;
+      --border:#302800; --green:#6DCB6D; --grn-bg:#0A1A0A;
+      --blue:#6AB0FF; --blu-bg:#050F25; --red:#FF7766; --red-bg:#200808;
+      --shadow:0 4px 24px rgba(0,0,0,.6);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0C0A04; --surf:#181408; --surf2:#211C0C; --surf3:#2A2410;
+    --text:#F0E8D0; --muted:#9A8A60; --light:#5A4E30;
+    --acc:#FF9900; --acc2:#FFCC66; --acc3:#2A1A00;
+    --border:#302800; --green:#6DCB6D; --grn-bg:#0A1A0A;
+    --blue:#6AB0FF; --blu-bg:#050F25; --red:#FF7766; --red-bg:#200808;
+    --shadow:0 4px 24px rgba(0,0,0,.6);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+    padding-inline: 16px;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding-block: 32px 72px; }
+
+  /* HEADER */
+  .hdr {
+    background: linear-gradient(140deg, #1A0D00 0%, #2A1400 50%, #3A1A00 100%);
+    border-radius: 20px;
+    padding: 52px 48px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+    color: #FFF;
+  }
+  .hdr::before {
+    content:'';
+    position:absolute; top:-80px; right:-80px;
+    width:380px; height:380px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,153,0,.25) 0%, transparent 65%);
+  }
+  .service-tag {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(255,153,0,.2); border:1px solid rgba(255,153,0,.4);
+    border-radius:100px; padding:5px 16px;
+    font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase;
+    color:#FFCC66; margin-bottom:20px; font-family:'JetBrains Mono',monospace;
+  }
+  .hdr h1 {
+    font-family:'Outfit',sans-serif;
+    font-size:2.8rem; font-weight:900; line-height:1.1;
+    text-wrap:balance; margin-bottom:12px;
+  }
+  .hdr h1 span { color:#FF9900; }
+  .hdr p { font-size:1rem; color:rgba(255,255,255,.65); max-width:540px; }
+
+  /* SECTION HEADING */
+  .sec {
+    display:flex; align-items:center; gap:12px;
+    margin: 36px 0 16px;
+  }
+  .sec-num {
+    width:32px; height:32px; border-radius:50%;
+    background:var(--acc); color:#000; font-weight:800;
+    font-family:'Outfit',sans-serif; font-size:.85rem;
+    display:flex; align-items:center; justify-content:center; flex-shrink:0;
+  }
+  .sec h2 { font-family:'Outfit',sans-serif; font-size:1.25rem; font-weight:800; }
+
+  /* CARD */
+  .card {
+    background:var(--surf);
+    border:1px solid var(--border);
+    border-radius:14px;
+    padding:24px;
+    margin-bottom:14px;
+    box-shadow:var(--shadow);
+  }
+  .card h3 {
+    font-family:'Outfit',sans-serif; font-size:.95rem;
+    font-weight:700; margin-bottom:8px; color:var(--acc2);
+  }
+  .card p { font-size:14px; color:var(--muted); }
+
+  /* ANALOGY BOX */
+  .analogy {
+    background:var(--acc3); border:2px solid var(--acc);
+    border-radius:14px; padding:22px 24px; margin-bottom:16px;
+  }
+  .analogy-tag {
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+    color:var(--acc2); margin-bottom:10px; display:block;
+  }
+  .analogy h3 { font-family:'Outfit',sans-serif; font-weight:800; font-size:1rem; margin-bottom:8px; }
+  .analogy p  { font-size:14px; line-height:1.6; }
+
+  /* COMPONENT GRID */
+  .cgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; margin-bottom:16px; }
+  .comp { background:var(--surf); border:1px solid var(--border); border-radius:12px; padding:18px; }
+  .comp-icon { font-size:1.8rem; margin-bottom:8px; display:block; }
+  .comp h4 { font-family:'Outfit',sans-serif; font-weight:700; font-size:.9rem; margin-bottom:4px; color:var(--acc2); }
+  .comp p { font-size:12.5px; color:var(--muted); line-height:1.45; }
+
+  /* BOX */
+  .box { border-radius:10px; padding:16px 18px; margin:14px 0; border-left:4px solid; font-size:14px; }
+  .box-title { font-family:'Outfit',sans-serif; font-weight:700; font-size:11.5px; letter-spacing:.05em; text-transform:uppercase; margin-bottom:6px; }
+  .box.info { background:var(--blu-bg); border-color:var(--blue); }
+  .box.info .box-title { color:var(--blue); }
+  .box.tip  { background:var(--grn-bg); border-color:var(--green); }
+  .box.tip .box-title  { color:var(--green); }
+  .box.warn { background:var(--acc3); border-color:var(--acc); }
+  .box.warn .box-title { color:var(--acc2); }
+
+  /* TABLE */
+  .tbl { overflow-x:auto; margin:16px 0; }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; }
+  th { background:var(--surf2); color:var(--acc2); font-family:'Outfit',sans-serif; font-weight:700;
+       font-size:11.5px; letter-spacing:.04em; text-align:left; padding:10px 14px;
+       border-bottom:2px solid var(--border); }
+  td { padding:10px 14px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:var(--surf2); }
+
+  /* CIDR VISUAL */
+  .cidr-vis {
+    background:var(--surf2); border:1px solid var(--border);
+    border-radius:12px; padding:20px; font-family:'JetBrains Mono',monospace;
+    font-size:13px; margin:16px 0;
+  }
+  .cidr-vis .row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .cidr-vis .bar {
+    flex:1; height:28px; border-radius:6px;
+    display:flex; align-items:center; padding:0 12px;
+    font-weight:600; font-size:12px;
+  }
+  .bar-vpc   { background:#FF990020; border:1px solid #FF9900; color:#CC6600; }
+  .bar-pub   { background:#2D7A2D20; border:1px solid #2D7A2D; color:#2D7A2D; }
+  .bar-priv  { background:#1A5FAA20; border:1px solid #1A5FAA; color:#1A5FAA; }
+
+  /* ARCHITECTURE DIAGRAM TEXT */
+  .arch {
+    background:var(--surf); border:2px dashed var(--border);
+    border-radius:14px; padding:24px; margin:16px 0; text-align:center; font-size:13px;
+  }
+  .arch .layer {
+    background:var(--surf2); border:1px solid var(--border);
+    border-radius:8px; padding:12px; margin:6px 0; position:relative;
+  }
+  .arch .layer-label {
+    position:absolute; left:10px; top:50%; transform:translateY(-50%);
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    color:var(--muted); text-transform:uppercase;
+  }
+
+  /* SUMMARY PILLS */
+  .pills { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0; }
+  .pill {
+    background:var(--acc3); border:1px solid rgba(255,153,0,.4);
+    border-radius:100px; padding:5px 14px;
+    font-size:12.5px; font-weight:600; color:var(--acc2);
+  }
+
+  /* STEP LIST */
+  .steps { list-style:none; display:flex; flex-direction:column; gap:10px; margin:14px 0; }
+  .steps li { display:flex; align-items:flex-start; gap:12px; font-size:14px; }
+  .steps .sn {
+    flex-shrink:0; width:26px; height:26px; border-radius:50%;
+    background:var(--acc); color:#000; font-weight:800;
+    font-family:'Outfit',sans-serif; font-size:12px;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  .foot { text-align:center; padding-top:28px; border-top:1px solid var(--border); color:var(--muted); font-size:12px; margin-top:16px; }
+  .foot b { color:var(--acc2); }
+
+  @media (max-width:600px) {
+    .hdr { padding:28px 20px; }
+    .hdr h1 { font-size:1.8rem; }
+    .cgrid { grid-template-columns:1fr 1fr; }
+    .card { padding:16px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hdr">
+    <div class="service-tag">🌐 AWS Networking</div>
+    <h1>AWS <span>VPC</span><br>Theory Notes</h1>
+    <p>Virtual Private Cloud — your own isolated network inside AWS. Complete beginner-friendly guide for 1st semester students.</p>
+  </header>
+
+  <!-- SECTION 1: WHAT IS VPC -->
+  <div class="sec"><div class="sec-num">1</div><h2>What is a VPC?</h2></div>
+
+  <div class="card">
+    <p>Before VPC existed, when you launched an EC2 instance it went directly on a shared public network — visible to the internet by default. As more companies moved to AWS, this became a serious security problem.</p>
+    <br>
+    <p><strong>VPC (Virtual Private Cloud)</strong> solves this: it gives you a <strong>completely isolated section of the AWS cloud</strong> where you control the networking — your own IP address ranges, subnets, routing rules, and security.</p>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">🏢 Analogy — Office Building</span>
+    <h3>Think of AWS as a huge commercial complex with thousands of offices.</h3>
+    <p>Without VPC → you're working at a <strong>public co-working space</strong>. Anyone can walk up to your desk.</p>
+    <br>
+    <p>With VPC → you <strong>rent an entire private floor</strong>. Only your team gets access. You control which rooms have windows (internet access) and which are internal-only. You hire security guards and set up access control at every door.</p>
+    <br>
+    <p><strong>VPC = your private floor in AWS's building.</strong> The building (AWS) manages power, cooling, and physical security. You manage everything inside your floor.</p>
+  </div>
+
+  <div class="box info">
+    <div class="box-title">Key Facts</div>
+    <ul style="margin-left:16px; font-size:14px;">
+      <li>VPC is a <strong>regional</strong> resource — it spans all Availability Zones in a region</li>
+      <li>You can have up to 5 VPCs per region (default limit)</li>
+      <li>AWS creates a <strong>Default VPC</strong> in every region for you — great for learning, not for production</li>
+      <li>Resources inside a VPC are private by default — nothing is exposed unless you choose to expose it</li>
+    </ul>
+  </div>
+
+  <!-- SECTION 2: CIDR -->
+  <div class="sec"><div class="sec-num">2</div><h2>IP Address Range (CIDR Block)</h2></div>
+
+  <div class="card">
+    <p>When you create a VPC, you give it a <strong>CIDR block</strong> — this is the range of private IP addresses your VPC can use. Think of it as deciding "how big is my office building?"</p>
+  </div>
+
+  <div class="cidr-vis">
+    <div class="row"><div class="bar bar-vpc">10.0.0.0 / 16 → VPC (65,536 IPs — the whole building)</div></div>
+    <div class="row"><div class="bar bar-pub">10.0.1.0 / 24 → Public Subnet (256 IPs — public floor)</div></div>
+    <div class="row"><div class="bar bar-priv">10.0.2.0 / 24 → Private Subnet (256 IPs — private floor)</div></div>
+  </div>
+
+  <div class="box warn">
+    <div class="box-title">Simple Rule to Remember</div>
+    Smaller the number after / → bigger the range.<br>
+    /16 = huge (65K IPs) · /24 = medium (256 IPs) · /32 = single IP<br><br>
+    <strong>For practice:</strong> always use 10.0.0.0/16 for your VPC, then 10.0.X.0/24 for subnets.
+  </div>
+
+  <!-- SECTION 3: COMPONENTS -->
+  <div class="sec"><div class="sec-num">3</div><h2>VPC Core Components</h2></div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">🏗️</span>
+      <h4>Subnet</h4>
+      <p>A division of your VPC. Like a floor of your building. Each subnet lives in one Availability Zone.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🚪</span>
+      <h4>Internet Gateway (IGW)</h4>
+      <p>The main door connecting your VPC to the public internet. Without it, nothing gets in or out.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🗺️</span>
+      <h4>Route Table</h4>
+      <p>The directory/signage system. Tells traffic "if you want the internet, go through the IGW."</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🛡️</span>
+      <h4>Security Group</h4>
+      <p>Firewall at the <strong>instance level</strong>. Like a security guard at each individual office room.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">🚧</span>
+      <h4>Network ACL (NACL)</h4>
+      <p>Firewall at the <strong>subnet level</strong>. Like a checkpoint at the entrance to each floor.</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">📡</span>
+      <h4>NAT Gateway</h4>
+      <p>Lets private subnet servers <strong>reach out</strong> to the internet (to download updates) without being directly exposed.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 4: PUBLIC VS PRIVATE SUBNET -->
+  <div class="sec"><div class="sec-num">4</div><h2>Public Subnet vs Private Subnet</h2></div>
+
+  <div class="card">
+    <p>The most important concept in VPC architecture. <strong>The only difference</strong> between a public and private subnet is the route table — specifically, whether traffic can reach the Internet Gateway.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Public Subnet</th><th>Private Subnet</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Route to Internet?</td><td>✅ Yes (via IGW)</td><td>❌ No direct route</td></tr>
+        <tr><td>Directly reachable from internet?</td><td>Yes (with public IP)</td><td>No</td></tr>
+        <tr><td>What goes here?</td><td>Web servers, Load Balancers, Bastion Host</td><td>Databases, App servers, internal APIs</td></tr>
+        <tr><td>Example IP access</td><td>World can reach it</td><td>Only resources in the VPC</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">🏢 Building Analogy Continued</span>
+    <h3>Floors with windows vs. interior rooms</h3>
+    <p><strong>Public Subnet</strong> = The ground floor reception and lobby. People from outside can walk in. Your web server (the receptionist) sits here — it talks to the public.</p>
+    <br>
+    <p><strong>Private Subnet</strong> = The secure back office / server room. No windows. No direct external access. Your database (confidential files) stays here. Only internal staff (other servers inside the VPC) can access it.</p>
+  </div>
+
+  <!-- SECTION 5: SECURITY GROUPS vs NACL -->
+  <div class="sec"><div class="sec-num">5</div><h2>Security Groups vs Network ACLs</h2></div>
+
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Security Group</th><th>Network ACL (NACL)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Level</td><td>Instance (EC2 level)</td><td>Subnet level</td></tr>
+        <tr><td>State</td><td><strong>Stateful</strong> — return traffic auto-allowed</td><td><strong>Stateless</strong> — must allow inbound AND outbound separately</td></tr>
+        <tr><td>Rules</td><td>Allow rules only</td><td>Allow AND Deny rules</td></tr>
+        <tr><td>Default</td><td>Deny all inbound, allow all outbound</td><td>Allow all traffic (default)</td></tr>
+        <tr><td>Analogy</td><td>Security guard at each room's door</td><td>Security checkpoint at each floor entrance</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box tip">
+    <div class="box-title">For Beginners — Start With Security Groups</div>
+    In most cases, Security Groups are enough. NACLs are an additional layer for extra security. Focus on Security Groups first — they handle 90% of real-world use cases.
+  </div>
+
+  <!-- SECTION 6: DEFAULT VPC -->
+  <div class="sec"><div class="sec-num">6</div><h2>Default VPC — What AWS Gives You</h2></div>
+
+  <div class="card">
+    <p>When your AWS account is created, AWS automatically sets up a <strong>Default VPC</strong> in every region. This is why you've been able to launch EC2 instances without manually setting up networking!</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp">
+      <span class="comp-icon">✅</span>
+      <h4>Default VPC comes with:</h4>
+      <p>CIDR: 172.31.0.0/16 · Internet Gateway attached · Public subnets in each AZ · Route table with internet route</p>
+    </div>
+    <div class="comp">
+      <span class="comp-icon">⚠️</span>
+      <h4>Why not use it in production?</h4>
+      <p>All subnets are public. No private isolation. Good for learning, but a real application needs a custom VPC with proper separation.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 7: 3-TIER ARCHITECTURE -->
+  <div class="sec"><div class="sec-num">7</div><h2>Standard VPC Architecture (3-Tier)</h2></div>
+
+  <div class="card">
+    <p>In real applications, resources are separated into 3 layers — each with different security requirements. This is called <strong>3-tier architecture</strong>.</p>
+  </div>
+
+  <div class="arch">
+    <div style="font-family:JetBrains Mono,monospace; font-size:11px; color:var(--muted); margin-bottom:12px; text-align:left;">INTERNET → Internet Gateway → VPC (10.0.0.0/16)</div>
+    <div class="layer" style="border-color:#FF9900; background:rgba(255,153,0,.06);">
+      <span class="layer-label">PUBLIC</span>
+      <div style="margin-left:60px; text-align:left; font-size:13px;">
+        <strong>🌐 Web Tier</strong> — Load Balancer, Web Servers (EC2)<br>
+        <span style="font-family:JetBrains Mono,monospace; font-size:11px; color:var(--muted);">10.0.1.0/24 (Mumbai AZ-a) · 10.0.2.0/24 (Mumbai AZ-b)</span>
+      </div>
+    </div>
+    <div style="text-align:center; font-size:12px; color:var(--muted); padding:4px;">↕ internal traffic only</div>
+    <div class="layer" style="border-color:#2D7A2D; background:rgba(45,122,45,.05);">
+      <span class="layer-label">PRIVATE</span>
+      <div style="margin-left:60px; text-align:left; font-size:13px;">
+        <strong>⚙️ App Tier</strong> — Application Servers, API backends<br>
+        <span style="font-family:JetBrains Mono,monospace; font-size:11px; color:var(--muted);">10.0.3.0/24 · 10.0.4.0/24</span>
+      </div>
+    </div>
+    <div style="text-align:center; font-size:12px; color:var(--muted); padding:4px;">↕ internal traffic only</div>
+    <div class="layer" style="border-color:#1A5FAA; background:rgba(26,95,170,.05);">
+      <span class="layer-label">PRIVATE</span>
+      <div style="margin-left:60px; text-align:left; font-size:13px;">
+        <strong>🗄️ Data Tier</strong> — Databases (RDS), Caches (ElastiCache)<br>
+        <span style="font-family:JetBrains Mono,monospace; font-size:11px; color:var(--muted);">10.0.5.0/24 · 10.0.6.0/24</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 8: COMPARISON WITH AZURE -->
+  <div class="sec"><div class="sec-num">8</div><h2>AWS VPC vs Azure VNet</h2></div>
+
+  <div class="tbl">
+    <table>
+      <thead>
+        <tr><th>Concept</th><th>AWS</th><th>Azure</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Private Network</td><td>VPC (Virtual Private Cloud)</td><td>VNet (Virtual Network)</td></tr>
+        <tr><td>Subnets</td><td>Subnets (public/private)</td><td>Subnets</td></tr>
+        <tr><td>Internet Access</td><td>Internet Gateway</td><td>No separate IGW; public IP + routing</td></tr>
+        <tr><td>Outbound only access</td><td>NAT Gateway</td><td>NAT Gateway</td></tr>
+        <tr><td>Instance-level firewall</td><td>Security Group (stateful)</td><td>Network Security Group (stateful)</td></tr>
+        <tr><td>Subnet-level firewall</td><td>Network ACL (stateless)</td><td>NSG at subnet level</td></tr>
+        <tr><td>Scope</td><td>One Region</td><td>One Region</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- SECTION 9: KEY SUMMARY -->
+  <div class="sec"><div class="sec-num">9</div><h2>Key Summary</h2></div>
+
+  <div class="card">
+    <ul class="steps">
+      <li><span class="sn">1</span><div><strong>VPC</strong> = Your own private, isolated network inside AWS. Full control over IP ranges, subnets, routing, and security.</div></li>
+      <li><span class="sn">2</span><div><strong>CIDR Block</strong> = The IP address range for your VPC. Use 10.0.0.0/16 for practice (65,536 IPs).</div></li>
+      <li><span class="sn">3</span><div><strong>Public Subnet</strong> = Has a route to the Internet Gateway → reachable from the internet. Put web servers here.</div></li>
+      <li><span class="sn">4</span><div><strong>Private Subnet</strong> = No route to IGW → not directly reachable from internet. Put databases here.</div></li>
+      <li><span class="sn">5</span><div><strong>Internet Gateway</strong> = The door between your VPC and the internet. Must be created and attached.</div></li>
+      <li><span class="sn">6</span><div><strong>Route Table</strong> = Routing rules. Public subnets need a route "0.0.0.0/0 → IGW".</div></li>
+      <li><span class="sn">7</span><div><strong>Security Group</strong> = Firewall per instance. Stateful — return traffic auto-allowed. Start here.</div></li>
+      <li><span class="sn">8</span><div><strong>Default VPC</strong> = AWS created it for you. Fine for labs, but build a custom VPC for real apps.</div></li>
+    </ul>
+  </div>
+
+  <div class="pills">
+    <span class="pill">VPC = private network</span>
+    <span class="pill">Subnet = subdivision</span>
+    <span class="pill">IGW = internet door</span>
+    <span class="pill">Route Table = traffic rules</span>
+    <span class="pill">Security Group = instance firewall</span>
+    <span class="pill">Public = internet access</span>
+    <span class="pill">Private = no direct internet</span>
+    <span class="pill">CIDR /16 = 65K IPs</span>
+  </div>
+
+  <footer class="foot">
+    <b>AWS VPC — Virtual Private Cloud</b> · Theory Notes · Cloud Computing, 1st Semester
+  </footer>
+
+</div>
+</body>
+</html>

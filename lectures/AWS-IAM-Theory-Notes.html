@@ -1,0 +1,1000 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>AWS IAM Theory Notes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --bg:           #F8F9FB;
+    --surface:      #FFFFFF;
+    --surface-2:    #F1F4F9;
+    --text:         #1B2637;
+    --text-muted:   #5A6478;
+    --text-light:   #8B97A8;
+    --accent:       #FF9900;
+    --accent-light: #FFF4E0;
+    --accent-dark:  #CC7A00;
+    --aws-dark:     #232F3E;
+    --aws-mid:      #37475A;
+    --border:       #E2E8F0;
+    --border-light: #EEF2F7;
+    --tag-bg:       #EBF4FF;
+    --tag-text:     #1D5FA8;
+    --green:        #059669;
+    --green-bg:     #ECFDF5;
+    --red:          #DC2626;
+    --red-bg:       #FEF2F2;
+    --blue:         #2563EB;
+    --blue-bg:      #EFF6FF;
+    --shadow:       0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:           #0D1520;
+      --surface:      #162032;
+      --surface-2:    #1E2D42;
+      --text:         #E4ECF5;
+      --text-muted:   #8EA4BE;
+      --text-light:   #5E7A96;
+      --accent:       #FFAA22;
+      --accent-light: #2A1A00;
+      --accent-dark:  #FFB84D;
+      --aws-dark:     #1A2840;
+      --aws-mid:      #2A3D57;
+      --border:       #243347;
+      --border-light: #1E2D42;
+      --tag-bg:       #0F2240;
+      --tag-text:     #6BA5E8;
+      --green:        #34D399;
+      --green-bg:     #022C1E;
+      --red:          #F87171;
+      --red-bg:       #2C0A0A;
+      --blue:         #60A5FA;
+      --blue-bg:      #0A1930;
+      --shadow:       0 1px 4px rgba(0,0,0,.4);
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:           #0D1520;
+    --surface:      #162032;
+    --surface-2:    #1E2D42;
+    --text:         #E4ECF5;
+    --text-muted:   #8EA4BE;
+    --text-light:   #5E7A96;
+    --accent:       #FFAA22;
+    --accent-light: #2A1A00;
+    --accent-dark:  #FFB84D;
+    --aws-dark:     #1A2840;
+    --aws-mid:      #2A3D57;
+    --border:       #243347;
+    --border-light: #1E2D42;
+    --tag-bg:       #0F2240;
+    --tag-text:     #6BA5E8;
+    --green:        #34D399;
+    --green-bg:     #022C1E;
+    --red:          #F87171;
+    --red-bg:       #2C0A0A;
+    --blue:         #60A5FA;
+    --blue-bg:      #0A1930;
+    --shadow:       0 1px 4px rgba(0,0,0,.4);
+    color-scheme: dark;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.7;
+    padding-inline: 16px;
+    padding-block: 0;
+  }
+
+  .page-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-block: 40px 80px;
+  }
+
+  /* ── HEADER ── */
+  .doc-header {
+    background: var(--aws-dark);
+    border-radius: 16px;
+    padding: 36px 40px;
+    margin-bottom: 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-header::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 260px; height: 260px;
+    background: radial-gradient(circle at 80% 20%, rgba(255,153,0,.18) 0%, transparent 70%);
+  }
+  .header-eyebrow {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .doc-header h1 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: #FFFFFF;
+    line-height: 1.2;
+    text-wrap: balance;
+    margin-bottom: 14px;
+  }
+  .doc-header h1 span { color: var(--accent); }
+  .header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .meta-pill {
+    background: rgba(255,255,255,.10);
+    color: rgba(255,255,255,.80);
+    border-radius: 100px;
+    padding: 4px 14px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .meta-pill strong { color: var(--accent); font-weight: 600; }
+
+  /* ── TOC ── */
+  .toc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 36px;
+    box-shadow: var(--shadow);
+  }
+  .toc-title {
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+  .toc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 6px;
+  }
+  .toc-grid a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 13.5px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    transition: background .15s, color .15s;
+  }
+  .toc-grid a:hover { background: var(--accent-light); color: var(--accent-dark); }
+  .toc-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: 5px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow);
+    scroll-margin-top: 20px;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .section h2 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.45rem;
+    font-weight: 700;
+    color: var(--text);
+    text-wrap: balance;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border-light);
+  }
+  .section h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 10px;
+  }
+  .section h3::before {
+    content: '▸ ';
+    color: var(--accent);
+  }
+  .section p { color: var(--text); margin-bottom: 12px; }
+  .section ul, .section ol {
+    padding-left: 20px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .section li { color: var(--text); }
+  .section li::marker { color: var(--accent); }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin: 20px 0;
+    border-left: 4px solid;
+    font-size: 14px;
+  }
+  .callout-title {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: .04em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .callout.note   { background: var(--blue-bg);  border-color: var(--blue);  }
+  .callout.note .callout-title { color: var(--blue); }
+  .callout.warn   { background: var(--accent-light); border-color: var(--accent); }
+  .callout.warn .callout-title { color: var(--accent-dark); }
+  .callout.tip    { background: var(--green-bg);  border-color: var(--green); }
+  .callout.tip .callout-title  { color: var(--green); }
+  .callout.danger { background: var(--red-bg);   border-color: var(--red);   }
+  .callout.danger .callout-title { color: var(--red); }
+
+  /* ── COMPONENT CARDS (Users/Groups/Roles/Policies) ── */
+  .component-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 14px;
+    margin: 20px 0;
+  }
+  .comp-card {
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    padding: 18px 16px;
+    background: var(--surface-2);
+  }
+  .comp-icon {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .comp-card h4 {
+    font-family: 'Outfit', sans-serif;
+    font-size: .9rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .comp-card p {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ── CODE ── */
+  .code-block {
+    background: var(--aws-dark);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .code-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .code-block pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #E8EDF4;
+    white-space: pre;
+  }
+  .json-key    { color: #79C0FF; }
+  .json-string { color: #A5D6FF; }
+  .json-value  { color: #FFA657; }
+  .json-bool   { color: #FF7B72; }
+  .json-comment{ color: #8B949E; font-style: italic; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  th {
+    background: var(--aws-dark);
+    color: #FFF;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    letter-spacing: .04em;
+    text-align: left;
+    padding: 11px 16px;
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child  { border-radius: 0 8px 0 0; }
+  td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    color: var(--text);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--surface-2); }
+
+  /* ── BEST PRACTICE LIST ── */
+  .bp-list { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+  .bp-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--surface-2);
+    border-radius: 9px;
+    padding: 13px 16px;
+    font-size: 14px;
+    color: var(--text);
+  }
+  .bp-icon {
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    background: var(--green-bg);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    color: var(--green);
+    font-weight: 700;
+    border: 1.5px solid var(--green);
+  }
+
+  /* ── TAG ── */
+  .tag {
+    display: inline-block;
+    background: var(--tag-bg);
+    color: var(--tag-text);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: .03em;
+  }
+
+  /* ── SUMMARY BOX ── */
+  .summary-box {
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 24px 0;
+    background: var(--accent-light);
+  }
+  .summary-box h4 {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: .95rem;
+    color: var(--accent-dark);
+    margin-bottom: 10px;
+  }
+  .summary-box ul { padding-left: 18px; }
+  .summary-box li { font-size: 13.5px; color: var(--text); }
+
+  /* ── FOOTER ── */
+  .doc-footer {
+    text-align: center;
+    padding: 28px;
+    margin-top: 8px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 12.5px;
+  }
+  .doc-footer strong { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    .section { padding: 22px 18px; }
+    .doc-header { padding: 28px 20px; }
+    .doc-header h1 { font-size: 1.5rem; }
+    .component-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+
+<div class="page-wrap">
+
+  <!-- HEADER -->
+  <header class="doc-header">
+    <div class="header-eyebrow">AWS Cloud Computing · 1st Semester · IIMT</div>
+    <h1>AWS <span>IAM</span><br>Identity &amp; Access Management</h1>
+    <div class="header-meta">
+      <span class="meta-pill"><strong>Topic:</strong> IAM Theory</span>
+      <span class="meta-pill"><strong>Subject:</strong> Public Cloud Services (AWS)</span>
+      <span class="meta-pill"><strong>Level:</strong> Beginner → Intermediate</span>
+      <span class="meta-pill"><strong>Next Topic:</strong> EC2</span>
+    </div>
+  </header>
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc-card">
+    <div class="toc-title">Topics Covered</div>
+    <div class="toc-grid">
+      <a href="#s1"><span class="toc-num">01</span> What is IAM?</a>
+      <a href="#s2"><span class="toc-num">02</span> IAM Components</a>
+      <a href="#s3"><span class="toc-num">03</span> IAM Policies</a>
+      <a href="#s4"><span class="toc-num">04</span> Policy JSON Structure</a>
+      <a href="#s5"><span class="toc-num">05</span> Auth vs Authz</a>
+      <a href="#s6"><span class="toc-num">06</span> MFA &amp; Access Keys</a>
+      <a href="#s7"><span class="toc-num">07</span> IAM Security Tools</a>
+      <a href="#s8"><span class="toc-num">08</span> Best Practices</a>
+      <a href="#s9"><span class="toc-num">09</span> Quick Summary</a>
+    </div>
+  </div>
+
+  <!-- S1: WHAT IS IAM -->
+  <section class="section" id="s1">
+    <div class="section-label">01 · Introduction</div>
+    <h2>What is AWS IAM?</h2>
+
+    <p><strong>IAM (Identity and Access Management)</strong> is a <em>global AWS service</em> that controls <strong>who</strong> can access AWS and <strong>what</strong> they can do. It is the foundation of security in any AWS environment.</p>
+
+    <div class="callout note">
+      <div class="callout-title">Simple Definition</div>
+      IAM answers two questions:<br>
+      1. <strong>WHO are you?</strong> (Authentication — proving your identity)<br>
+      2. <strong>WHAT can you do?</strong> (Authorization — what actions are allowed)
+    </div>
+
+    <h3>Why Do We Need IAM?</h3>
+    <p>Without IAM, everyone would use the root account (owner account), which is extremely dangerous. IAM lets us:</p>
+    <ul>
+      <li>Create separate accounts for each person (developer, admin, tester)</li>
+      <li>Give only the permissions that person needs — <em>Principle of Least Privilege</em></li>
+      <li>Track who did what and when (audit trail)</li>
+      <li>Allow third-party services to interact with AWS securely</li>
+      <li>Manage access for thousands of users from one place</li>
+    </ul>
+
+    <div class="callout warn">
+      <div class="callout-title">Root Account Warning</div>
+      The <strong>Root Account</strong> is created when you first create your AWS account. It has complete access to everything. You should NEVER use it for daily tasks and NEVER share it. Create an IAM Admin user instead.
+    </div>
+
+    <h3>Key Features of IAM</h3>
+    <ul>
+      <li><strong>Global service</strong> — IAM is not region-specific; it applies across all regions</li>
+      <li><strong>Free service</strong> — IAM itself has no additional charge</li>
+      <li><strong>Integrated with all AWS services</strong></li>
+      <li>Supports <strong>Multi-Factor Authentication (MFA)</strong></li>
+      <li>Provides temporary access through <strong>Roles</strong></li>
+    </ul>
+  </section>
+
+  <!-- S2: COMPONENTS -->
+  <section class="section" id="s2">
+    <div class="section-label">02 · Components</div>
+    <h2>IAM Core Components</h2>
+
+    <p>IAM has four main building blocks. Understanding each one is essential.</p>
+
+    <div class="component-grid">
+      <div class="comp-card">
+        <span class="comp-icon">👤</span>
+        <h4>IAM Users</h4>
+        <p>A real person or application that needs access to AWS.</p>
+      </div>
+      <div class="comp-card">
+        <span class="comp-icon">👥</span>
+        <h4>IAM Groups</h4>
+        <p>A collection of users sharing the same permissions.</p>
+      </div>
+      <div class="comp-card">
+        <span class="comp-icon">🎭</span>
+        <h4>IAM Roles</h4>
+        <p>Temporary identity assumed by services, apps, or users from other accounts.</p>
+      </div>
+      <div class="comp-card">
+        <span class="comp-icon">📋</span>
+        <h4>IAM Policies</h4>
+        <p>JSON documents defining what actions are allowed or denied.</p>
+      </div>
+    </div>
+
+    <h3>1. IAM Users</h3>
+    <p>An IAM User represents a single person or service. When created, a user has <strong>no permissions by default</strong>. Permissions are granted by attaching policies.</p>
+    <ul>
+      <li>Can have a <strong>Console Password</strong> (for AWS Management Console login)</li>
+      <li>Can have <strong>Access Keys</strong> (for CLI/API access)</li>
+      <li>Can belong to one or more groups</li>
+      <li>Permissions can be attached directly or inherited from a group</li>
+    </ul>
+
+    <h3>2. IAM Groups</h3>
+    <p>Groups make it easy to manage permissions for multiple users at once. Assign a policy to a group — all users in that group inherit it.</p>
+    <div class="callout note">
+      <div class="callout-title">Key Rule</div>
+      Groups can only contain <strong>Users</strong>. Groups CANNOT contain other groups. A user can belong to multiple groups.
+    </div>
+    <p><strong>Example groups</strong>: Developers, Admins, DBAs, ReadOnly-Team</p>
+
+    <h3>3. IAM Roles</h3>
+    <p>A Role is not assigned to a person — it is <strong>assumed temporarily</strong>. Think of it like borrowing a badge. Roles are used when:</p>
+    <ul>
+      <li>An <strong>EC2 instance</strong> needs to access S3 (the instance assumes a role)</li>
+      <li>A <strong>Lambda function</strong> needs to write to DynamoDB</li>
+      <li>A user from <strong>another AWS account</strong> needs cross-account access</li>
+      <li>Users logging in via <strong>SSO / Federation</strong></li>
+    </ul>
+
+    <div class="callout tip">
+      <div class="callout-title">Roles vs Users</div>
+      <strong>User</strong> = permanent identity for a person (long-term)<br>
+      <strong>Role</strong> = temporary identity for services or applications (short-term, auto-expires)
+    </div>
+
+    <h3>4. IAM Policies</h3>
+    <p>A Policy is a JSON document that defines <strong>permissions</strong>. It specifies which AWS services and actions are allowed or denied, and on which resources.</p>
+    <ul>
+      <li>Can be attached to Users, Groups, or Roles</li>
+      <li>Multiple policies can be attached to one identity</li>
+      <li>AWS provides pre-built <strong>Managed Policies</strong> (e.g., AdministratorAccess, AmazonS3ReadOnlyAccess)</li>
+      <li>You can create <strong>Inline Policies</strong> or <strong>Customer Managed Policies</strong></li>
+    </ul>
+  </section>
+
+  <!-- S3: POLICY TYPES -->
+  <section class="section" id="s3">
+    <div class="section-label">03 · Policy Types</div>
+    <h2>IAM Policy Types</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Policy Type</th>
+            <th>Attached To</th>
+            <th>Who Manages It</th>
+            <th>Use Case</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>AWS Managed Policy</strong></td>
+            <td>Users, Groups, Roles</td>
+            <td>AWS (pre-built)</td>
+            <td>Common use cases like S3ReadOnly, AdminAccess</td>
+          </tr>
+          <tr>
+            <td><strong>Customer Managed Policy</strong></td>
+            <td>Users, Groups, Roles</td>
+            <td>You (your account)</td>
+            <td>Custom rules specific to your org</td>
+          </tr>
+          <tr>
+            <td><strong>Inline Policy</strong></td>
+            <td>Single User/Group/Role</td>
+            <td>You (embedded)</td>
+            <td>One-to-one, deleted with the identity</td>
+          </tr>
+          <tr>
+            <td><strong>Resource-based Policy</strong></td>
+            <td>AWS Resource (e.g., S3 bucket)</td>
+            <td>You</td>
+            <td>Allow cross-account access to a specific resource</td>
+          </tr>
+          <tr>
+            <td><strong>Permission Boundary</strong></td>
+            <td>Users, Roles</td>
+            <td>You (admin sets max limit)</td>
+            <td>Set the maximum permissions a user can ever have</td>
+          </tr>
+          <tr>
+            <td><strong>SCP (Service Control Policy)</strong></td>
+            <td>AWS Org Accounts</td>
+            <td>Org Admin</td>
+            <td>Block services across entire AWS Organization</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Deny Always Wins</div>
+      If there is an explicit <strong>Deny</strong> anywhere in any policy, access is denied — even if another policy explicitly allows it. AWS uses <em>deny-by-default</em>: everything is denied unless there is an explicit Allow.
+    </div>
+  </section>
+
+  <!-- S4: JSON STRUCTURE -->
+  <section class="section" id="s4">
+    <div class="section-label">04 · Policy Structure</div>
+    <h2>IAM Policy JSON Structure</h2>
+
+    <p>Every IAM policy is written in JSON. Understanding this structure is critical for the AZ and AWS exams, and for real-world work.</p>
+
+    <div class="code-block">
+      <div class="code-label">IAM Policy — JSON Structure</div>
+      <pre>{
+  <span class="json-key">"Version"</span>: <span class="json-string">"2012-10-17"</span>,         <span class="json-comment">// always use this version</span>
+  <span class="json-key">"Statement"</span>: [
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-string">"AllowS3ReadOnly"</span>,     <span class="json-comment">// optional: statement ID</span>
+      <span class="json-key">"Effect"</span>: <span class="json-string">"Allow"</span>,            <span class="json-comment">// "Allow" or "Deny"</span>
+      <span class="json-key">"Action"</span>: [
+        <span class="json-string">"s3:GetObject"</span>,          <span class="json-comment">// specific action</span>
+        <span class="json-string">"s3:ListBucket"</span>
+      ],
+      <span class="json-key">"Resource"</span>: [
+        <span class="json-string">"arn:aws:s3:::my-bucket"</span>, <span class="json-comment">// specific resource (ARN)</span>
+        <span class="json-string">"arn:aws:s3:::my-bucket/*"</span>
+      ],
+      <span class="json-key">"Condition"</span>: {             <span class="json-comment">// optional: when rule applies</span>
+        <span class="json-string">"StringEquals"</span>: {
+          <span class="json-string">"aws:RequestedRegion"</span>: <span class="json-string">"ap-south-1"</span>
+        }
+      }
+    }
+  ]
+}</pre>
+    </div>
+
+    <h3>Breaking Down Each Field</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Field</th><th>Required?</th><th>Description</th><th>Example Values</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="tag">Version</span></td>
+            <td>Yes</td>
+            <td>Policy language version. Always use 2012-10-17</td>
+            <td><code>2012-10-17</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">Sid</span></td>
+            <td>No</td>
+            <td>Statement ID — a label for the statement</td>
+            <td><code>AllowEC2Read</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">Effect</span></td>
+            <td>Yes</td>
+            <td>Whether to Allow or Deny the actions</td>
+            <td><code>Allow</code> / <code>Deny</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">Action</span></td>
+            <td>Yes</td>
+            <td>Which AWS API actions to allow/deny. Use * for all.</td>
+            <td><code>s3:PutObject</code>, <code>ec2:*</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">Resource</span></td>
+            <td>Yes</td>
+            <td>Which AWS resource(s) the statement applies to (ARN format). Use * for all.</td>
+            <td><code>arn:aws:s3:::bucket-name/*</code></td>
+          </tr>
+          <tr>
+            <td><span class="tag">Condition</span></td>
+            <td>No</td>
+            <td>Optional extra conditions (time, IP, region, MFA, etc.)</td>
+            <td><code>aws:MultiFactorAuthPresent: true</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-title">ARN Format</div>
+      ARN = Amazon Resource Name. It uniquely identifies every AWS resource.<br>
+      Format: <code>arn:partition:service:region:account-id:resource</code><br>
+      Example: <code>arn:aws:s3:::my-bucket</code> (S3 has no region/account in ARN)
+    </div>
+  </section>
+
+  <!-- S5: AUTH vs AUTHZ -->
+  <section class="section" id="s5">
+    <div class="section-label">05 · Core Concepts</div>
+    <h2>Authentication vs Authorization</h2>
+
+    <p>These two terms are often confused. Both are handled by IAM but they are completely different concepts.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>Authentication</th><th>Authorization</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Question</strong></td>
+            <td>"Who are you?"</td>
+            <td>"What can you do?"</td>
+          </tr>
+          <tr>
+            <td><strong>In IAM</strong></td>
+            <td>Login with username + password / Access Key</td>
+            <td>Policies define what actions are permitted</td>
+          </tr>
+          <tr>
+            <td><strong>Happens</strong></td>
+            <td>First (before anything else)</td>
+            <td>Second (after identity is confirmed)</td>
+          </tr>
+          <tr>
+            <td><strong>Example</strong></td>
+            <td>Logging into AWS Console</td>
+            <td>Being allowed to create an EC2 instance</td>
+          </tr>
+          <tr>
+            <td><strong>AWS Term</strong></td>
+            <td>Identity verification</td>
+            <td>Permissions / Policies</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>IAM Decision Flow</h3>
+    <p>When a user or service tries to perform an action in AWS, IAM checks in this order:</p>
+    <ol>
+      <li><strong>Is there an explicit Deny?</strong> → If yes, access is denied immediately</li>
+      <li><strong>Is there an explicit Allow?</strong> → If yes, access is granted</li>
+      <li><strong>Neither?</strong> → Access is denied (implicit deny — default)</li>
+    </ol>
+
+    <div class="callout note">
+      <div class="callout-title">Principle of Least Privilege</div>
+      Always give users and services only the <strong>minimum permissions</strong> they need to do their job — nothing more. This is one of the most important security principles in cloud computing.
+    </div>
+  </section>
+
+  <!-- S6: MFA & ACCESS KEYS -->
+  <section class="section" id="s6">
+    <div class="section-label">06 · Security</div>
+    <h2>MFA &amp; Access Keys</h2>
+
+    <h3>Multi-Factor Authentication (MFA)</h3>
+    <p>MFA adds an extra layer of security beyond just a password. Even if a password is stolen, the attacker cannot log in without the second factor.</p>
+    <ul>
+      <li><strong>Factor 1</strong>: Something you know (password)</li>
+      <li><strong>Factor 2</strong>: Something you have (physical device / virtual authenticator app)</li>
+    </ul>
+
+    <h3>MFA Device Types in AWS</h3>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>How it Works</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Virtual MFA App</td>
+            <td>TOTP codes in a smartphone app</td>
+            <td>Google Authenticator, Authy</td>
+          </tr>
+          <tr>
+            <td>Hardware TOTP Token</td>
+            <td>Physical device with rotating code</td>
+            <td>Gemalto device</td>
+          </tr>
+          <tr>
+            <td>FIDO Security Key</td>
+            <td>USB/NFC hardware key — phishing resistant</td>
+            <td>YubiKey</td>
+          </tr>
+          <tr>
+            <td>Hardware Key Fob</td>
+            <td>Dedicated hardware for GovCloud</td>
+            <td>SurePassID</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout danger">
+      <div class="callout-title">Must Enable MFA On</div>
+      Always enable MFA on the <strong>Root Account</strong> and all <strong>Admin IAM Users</strong>. This is mandatory for any real-world AWS account.
+    </div>
+
+    <h3>Access Keys vs Console Password</h3>
+    <p>There are two ways to access AWS — each uses different credentials:</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th></th><th>Console Password</th><th>Access Key</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Used For</strong></td>
+            <td>AWS Web Console (browser)</td>
+            <td>AWS CLI, SDK, API calls</td>
+          </tr>
+          <tr>
+            <td><strong>Format</strong></td>
+            <td>Username + Password</td>
+            <td>Access Key ID + Secret Access Key</td>
+          </tr>
+          <tr>
+            <td><strong>Secret visible after?</strong></td>
+            <td>Can be reset</td>
+            <td>Secret shown ONCE only — save immediately</td>
+          </tr>
+          <tr>
+            <td><strong>Rotate</strong></td>
+            <td>Recommended regularly</td>
+            <td>Recommended every 90 days</td>
+          </tr>
+          <tr>
+            <td><strong>Share?</strong></td>
+            <td>Never share</td>
+            <td>Never share — treat like a password</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout warn">
+      <div class="callout-title">Never Hardcode Access Keys</div>
+      Never put Access Keys directly in your code or upload them to GitHub. Use IAM Roles for applications running on EC2, and use environment variables or AWS Secrets Manager for local development.
+    </div>
+  </section>
+
+  <!-- S7: SECURITY TOOLS -->
+  <section class="section" id="s7">
+    <div class="section-label">07 · Security Tools</div>
+    <h2>IAM Security Tools</h2>
+
+    <p>AWS provides built-in tools to audit and review your IAM configuration.</p>
+
+    <h3>1. IAM Credentials Report (Account Level)</h3>
+    <p>A downloadable CSV report of all IAM users and the status of their credentials — password last used, MFA enabled, access keys created/rotated, etc.</p>
+    <ul>
+      <li>Go to IAM → Credential Report → Download</li>
+      <li>Useful for compliance audits</li>
+      <li>Shows which users haven't logged in for a long time (potential inactive accounts)</li>
+    </ul>
+
+    <h3>2. IAM Access Advisor (User Level)</h3>
+    <p>Shows which services a user has permission to access, and when they <strong>last accessed</strong> each service.</p>
+    <ul>
+      <li>Go to IAM → User → Access Advisor tab</li>
+      <li>Helps you identify unused permissions → remove them (least privilege)</li>
+      <li>Shows the last time each allowed service was actually used</li>
+    </ul>
+
+    <div class="callout tip">
+      <div class="callout-title">When to Use Which Tool</div>
+      <strong>Credentials Report</strong> → Use when you want a full overview of all users' security status (account-wide audit)<br>
+      <strong>Access Advisor</strong> → Use when you want to fine-tune one specific user's permissions
+    </div>
+
+    <h3>3. IAM Policy Simulator</h3>
+    <p>Test what a user, group, or role can or cannot do — <strong>without actually performing the action</strong>.</p>
+    <ul>
+      <li>Useful for testing before giving permissions to production users</li>
+      <li>Access at: <em>policy simulator tool in the IAM console</em></li>
+    </ul>
+  </section>
+
+  <!-- S8: BEST PRACTICES -->
+  <section class="section" id="s8">
+    <div class="section-label">08 · Best Practices</div>
+    <h2>IAM Best Practices</h2>
+
+    <ul class="bp-list">
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Never use the Root account for daily tasks.</strong> Create an IAM admin user immediately after account creation and lock the root account away.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>One physical user = One IAM user.</strong> Don't share IAM users between people. Each person gets their own account.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Use Groups to assign permissions.</strong> Attach policies to groups, not individual users. Makes it easier to manage at scale.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Apply Principle of Least Privilege.</strong> Give only the minimum permissions required. Start with zero and add what is needed.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Enable MFA for all users</strong>, especially the root account and admin users. This is the single most impactful security step.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Rotate Access Keys regularly.</strong> Rotate every 90 days and immediately revoke keys for users who leave the organization.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Use IAM Roles for applications and services</strong> (EC2, Lambda, etc.) instead of embedding access keys in code.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Enforce a strong password policy.</strong> Set minimum length, require uppercase/numbers/symbols, and force rotation.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Audit regularly with Credentials Report and Access Advisor.</strong> Remove unused users, permissions, and access keys.</div>
+      </li>
+      <li>
+        <span class="bp-icon">✓</span>
+        <div><strong>Never share or hardcode Access Keys.</strong> Use environment variables, AWS Secrets Manager, or IAM Roles instead.</div>
+      </li>
+    </ul>
+  </section>
+
+  <!-- S9: SUMMARY -->
+  <section class="section" id="s9">
+    <div class="section-label">09 · Quick Summary</div>
+    <h2>Chapter Summary</h2>
+
+    <div class="summary-box">
+      <h4>Key Points to Remember</h4>
+      <ul>
+        <li>IAM = Identity &amp; Access Management — controls WHO can access WHAT in AWS</li>
+        <li>IAM is a <strong>global service</strong> — not region-specific</li>
+        <li>4 main components: <strong>Users, Groups, Roles, Policies</strong></li>
+        <li>Groups contain Users only — groups cannot contain groups</li>
+        <li>Roles are for <strong>temporary access</strong> (services, cross-account, federation)</li>
+        <li>Policies are <strong>JSON documents</strong> with: Version, Statement, Effect, Action, Resource</li>
+        <li>Effect is <strong>Allow or Deny</strong> — Deny always wins</li>
+        <li>By default, <strong>everything is denied</strong> unless explicitly allowed</li>
+        <li>MFA adds a second factor of security beyond just a password</li>
+        <li>Access Keys are for CLI/API — Console Password is for the browser</li>
+        <li>Use <strong>Credentials Report</strong> (account audit) and <strong>Access Advisor</strong> (user audit)</li>
+        <li><strong>Least Privilege Principle</strong> — give only what is needed, nothing more</li>
+      </ul>
+    </div>
+
+    <h3>What's Next?</h3>
+    <p>Now that IAM is covered, the next topic is <strong>EC2 (Elastic Compute Cloud)</strong> — where you will launch virtual machines in the cloud and connect them to what you just learned about IAM Roles (so EC2 instances can securely access S3, RDS, and other AWS services).</p>
+
+    <div class="callout note">
+      <div class="callout-title">Lab Connection</div>
+      In the IAM Lab you already completed, you created Users, Groups, and Policies. In the next EC2 lab, you will create an IAM Role and attach it to an EC2 instance — that's how the instance gets permission to access other AWS services without any access key.
+    </div>
+  </section>
+
+  <footer class="doc-footer">
+    <strong>IIMT College · Cloud Computing · 1st Semester</strong><br>
+    AWS IAM Theory Notes · Prepared for classroom use
+  </footer>
+
+</div>
+
+</body></html>

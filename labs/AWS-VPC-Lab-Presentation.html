@@ -1,0 +1,410 @@
+<title>AWS VPC Lab</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  :root {
+    --bg:#0C0A04; --surf:#181408; --surf2:#211C0C; --surf3:#2A2410;
+    --text:#F0E8D0; --muted:#9A8A60; --light:#5A4E30;
+    --acc:#FF9900; --acc2:#FFCC66; --acc3:#FFF4CC;
+    --border:#302800;
+    --green:#6DCB6D; --grn-bg:#0A1A0A;
+    --blue:#6AB0FF; --blu-bg:#050F25;
+    --red:#FF7766; --red-bg:#200808;
+    --shadow:0 4px 24px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.65;padding-inline:16px;}
+  .wrap{max-width:960px;margin:0 auto;padding-block:32px 72px;}
+
+  /* HEADER */
+  .hdr{border-radius:20px;padding:48px;margin-bottom:30px;position:relative;overflow:hidden;background:linear-gradient(140deg,#0A0800 0%,#1A1000 40%,#2A1A00 100%);border:1px solid #3A2800;}
+  .hdr::before{content:'';position:absolute;top:-100px;right:-100px;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle,rgba(255,153,0,.18) 0%,transparent 65%);}
+  .lab-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,153,0,.15);border:1px solid rgba(255,153,0,.35);border-radius:100px;padding:5px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--acc2);margin-bottom:20px;}
+  .hdr h1{font-family:'Outfit',sans-serif;font-size:2.6rem;font-weight:900;color:#FFF;line-height:1.1;text-wrap:balance;margin-bottom:12px;}
+  .hdr h1 span{color:var(--acc);}
+  .hdr p{font-size:1rem;color:rgba(255,255,255,.6);margin-bottom:22px;max-width:520px;}
+  .lab-chips{display:flex;flex-wrap:wrap;gap:8px;}
+  .lc{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.75);border-radius:100px;padding:5px 14px;font-size:12px;font-weight:500;}
+
+  /* ACTIVITY CARD */
+  .act{background:linear-gradient(135deg,#100C00,#1C1400);border:2px solid #3A2800;border-radius:16px;padding:24px;margin-bottom:16px;}
+  .act-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc2);margin-bottom:10px;display:block;}
+  .act h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:1.1rem;color:#FFF;margin-bottom:10px;}
+
+  /* DIVIDER */
+  .div{display:flex;align-items:center;gap:12px;margin:32px 0 18px;}
+  .div-line{flex:1;height:1px;background:var(--border);}
+  .div-lbl{font-family:'Outfit',sans-serif;font-weight:700;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+
+  /* STEP CARD */
+  .step{background:var(--surf);border:1px solid var(--border);border-radius:16px;margin-bottom:16px;overflow:hidden;box-shadow:var(--shadow);}
+  .step-hd{display:flex;align-items:center;gap:16px;padding:20px 24px;background:var(--surf2);border-bottom:1px solid var(--border);}
+  .snum{flex-shrink:0;width:44px;height:44px;background:linear-gradient(135deg,#FF9900,#CC6600);border-radius:13px;display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-weight:800;font-size:1.1rem;color:#FFF;box-shadow:0 2px 10px rgba(255,153,0,.4);}
+  .step-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:1.1rem;}
+  .step-sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .step-body{padding:24px;}
+
+  /* INSTRUCTION LIST */
+  .ilist{list-style:none;display:flex;flex-direction:column;gap:11px;}
+  .ilist li{display:flex;align-items:flex-start;gap:14px;background:var(--surf2);border-radius:10px;padding:13px 16px;font-size:14px;}
+  .inum{flex-shrink:0;width:26px;height:26px;background:var(--acc);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:700;color:#000;}
+  .ilist b{color:var(--acc2);}
+  .path{display:block;margin-top:8px;background:var(--surf3);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--acc2);overflow-x:auto;white-space:nowrap;}
+  .path .arr{color:var(--muted);margin:0 5px;}
+
+  /* CODE */
+  .code{background:#060400;border:1px solid var(--border);border-radius:10px;overflow:hidden;margin:14px 0;}
+  .code-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:var(--surf3);border-bottom:1px solid var(--border);}
+  .code-lang{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:var(--acc);letter-spacing:.06em;text-transform:uppercase;}
+  .code pre{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7;color:#D0C8A8;padding:16px 20px;overflow-x:auto;}
+  .k{color:#6AB0FF;} .v{color:#FF9900;} .s{color:#FFCC66;} .c{color:#4A4030;font-style:italic;}
+
+  /* BOX */
+  .box{border-radius:10px;padding:15px 18px;margin:14px 0;border-left:4px solid;font-size:13.5px;}
+  .box-h{font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;margin-bottom:6px;}
+  .box.info{background:rgba(106,176,255,.08);border-color:var(--blue);}
+  .box.info .box-h{color:var(--blue);}
+  .box.tip{background:var(--grn-bg);border-color:var(--green);}
+  .box.tip .box-h{color:var(--green);}
+  .box.warn{background:rgba(255,153,0,.08);border-color:var(--acc);}
+  .box.warn .box-h{color:var(--acc2);}
+  .box.ok{background:rgba(109,203,109,.06);border-color:var(--green);}
+  .box.ok .box-h{color:var(--green);}
+
+  /* TABLE */
+  .tbl{overflow-x:auto;margin:14px 0;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:var(--surf3);color:var(--acc2);font-family:'Outfit',sans-serif;font-weight:600;font-size:11.5px;letter-spacing:.04em;text-align:left;padding:10px 14px;border-bottom:1px solid var(--border);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surf2);}
+
+  /* QUIZ */
+  .quiz{background:linear-gradient(135deg,#0C0800,#1A1000);border:1px solid #3A2800;border-radius:16px;padding:30px;margin-top:28px;}
+  .quiz h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:1.1rem;color:#FFF;margin-bottom:18px;}
+  .qlist{list-style:none;display:flex;flex-direction:column;gap:10px;}
+  .qi{display:flex;align-items:flex-start;gap:12px;background:rgba(255,255,255,.05);border-radius:10px;padding:13px 16px;font-size:13.5px;}
+  .qi-icon{flex-shrink:0;font-size:1rem;}
+
+  .foot{text-align:center;padding-top:28px;margin-top:12px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;}
+  .foot b{color:var(--acc);}
+
+  @media(max-width:600px){.step-body{padding:16px;}.hdr{padding:28px 20px;}.hdr h1{font-size:1.7rem;}}
+</style>
+
+<div class="wrap">
+
+  <header class="hdr">
+    <div class="lab-tag">🔬 Hands-On Lab · Amazon VPC</div>
+    <h1>AWS <span>VPC</span><br>Lab Presentation</h1>
+    <p>Step-by-step practical guide. Build your own private network from scratch — subnets, internet gateway, routing, and security groups.</p>
+    <div class="lab-chips">
+      <span class="lc">Lab 1: Explore Default VPC</span>
+      <span class="lc">Lab 2: Create Custom VPC</span>
+      <span class="lc">Lab 3: Subnets + IGW</span>
+      <span class="lc">Lab 4: Route Tables</span>
+      <span class="lc">Lab 5: Launch EC2 in VPC</span>
+      <span class="lc">Activity: Draw-a-VPC</span>
+    </div>
+  </header>
+
+  <!-- PREREQUISITES -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Before You Start</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">✓</div>
+      <div><div class="step-title">Prerequisites</div><div class="step-sub">Everything should be ready before starting</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What You Need</div>
+        AWS Console open · IAM user login (not root) · Region set to <strong>ap-south-1 (Mumbai)</strong> · You've already done EC2 labs — you understand what an instance is
+      </div>
+      <div class="box warn">
+        <div class="box-h">Important — Use ap-south-1</div>
+        Set your region to <strong>Asia Pacific (Mumbai)</strong> in the top-right corner. VPCs are regional — always confirm you're in the right region before creating anything.
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY: DRAW A VPC -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Opening Activity (8 min)</div><div class="div-line"></div></div>
+
+  <div class="act">
+    <span class="act-tag">🎨 Think-Pair-Share Activity</span>
+    <h3>Activity: "Public or Private?" — 8 Minutes</h3>
+    <p style="font-size:14px; color:rgba(255,255,255,.7); margin-bottom:14px;">Before touching the console, build your mental model. Work in pairs.</p>
+    <div class="box warn" style="margin:0;">
+      <div class="box-h">Instructions for Students</div>
+      <strong>For each item below, decide: should it go in a Public Subnet or Private Subnet? Write your answers on paper. Then compare with your partner.</strong><br><br>
+      1. A website that customers visit (frontend web server)<br>
+      2. A database storing customer passwords<br>
+      3. A payment processing server<br>
+      4. A file server only IT team uses<br>
+      5. An API that your mobile app calls<br>
+      6. A backup storage server<br><br>
+      <strong>Discuss:</strong> What is your rule for deciding Public vs Private?
+    </div>
+  </div>
+
+  <!-- LAB 1 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 1 of 5</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">1</div>
+      <div><div class="step-title">Explore the Default VPC</div><div class="step-sub">See what AWS created for you automatically</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        AWS created a Default VPC in your account. Before building our own, let's understand what it looks like — this is exactly what a working VPC looks like.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Go to <b>VPC</b> service in AWS Console<span class="path">Services <span class="arr">→</span> Networking &amp; Content Delivery <span class="arr">→</span> VPC</span></div></li>
+        <li><span class="inum">2</span><div>Click <b>Your VPCs</b> (left sidebar) → You'll see a VPC with name "—" — this is the default one</div></li>
+        <li><span class="inum">3</span><div>Note the <b>IPv4 CIDR</b>: it should be <b>172.31.0.0/16</b></div></li>
+        <li><span class="inum">4</span><div>Click <b>Subnets</b> (left sidebar) → Count the subnets — there should be one per Availability Zone (typically 3 in Mumbai)</div></li>
+        <li><span class="inum">5</span><div>Click <b>Internet Gateways</b> → You'll see one already attached to the default VPC</div></li>
+        <li><span class="inum">6</span><div>Click <b>Route Tables</b> → Click on the main route table → Check the <b>Routes</b> tab → You'll see a route to 0.0.0.0/0 pointing to the IGW</div></li>
+      </ul>
+      <div class="box ok"><div class="box-h">What You Observed</div>A working VPC has: a CIDR block → subnets → an Internet Gateway → route tables pointing traffic to the IGW. We'll now build all of this from scratch.</div>
+    </div>
+  </div>
+
+  <!-- LAB 2 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 2 of 5</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">2</div>
+      <div><div class="step-title">Create a Custom VPC</div><div class="step-sub">Build your own private network from a blank slate</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We'll create a VPC with the IP range 10.0.0.0/16. This is your private network — nothing is connected to the internet yet.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Go to <b>Your VPCs</b> → Click <b>Create VPC</b></div></li>
+        <li><span class="inum">2</span><div>Select <b>VPC only</b> (not "VPC and more")<br>
+          <div class="code"><div class="code-bar"><span class="code-lang">VPC Settings</span></div>
+            <pre><span class="k">Name tag</span>       : <span class="s">iimt-vpc</span>
+<span class="k">IPv4 CIDR</span>      : <span class="v">10.0.0.0/16</span>
+<span class="k">IPv6 CIDR</span>      : <span class="v">No IPv6</span>
+<span class="k">Tenancy</span>        : <span class="v">Default</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">3</span><div>Click <b>Create VPC</b></div></li>
+        <li><span class="inum">4</span><div>Your new VPC appears in the list. Notice: <b>State = Available</b>, but there are <b>no subnets</b> yet. The network exists but it's completely empty.</div></li>
+      </ul>
+      <div class="box ok"><div class="box-h">Expected Result</div>VPC <code>iimt-vpc</code> created with CIDR 10.0.0.0/16. State: Available. No subnets, no IGW, no route table yet — just the container.</div>
+    </div>
+  </div>
+
+  <!-- LAB 3 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 3 of 5</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">3</div>
+      <div><div class="step-title">Create Subnets + Attach Internet Gateway</div><div class="step-sub">Divide your VPC and connect it to the internet</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        We'll create one Public Subnet (for web servers) and one Private Subnet (for databases). Then attach an Internet Gateway to our VPC.
+      </div>
+
+      <p style="margin:14px 0 8px; font-weight:600; color:var(--acc2);">Part A — Create Public Subnet</p>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Click <b>Subnets</b> (left sidebar) → <b>Create subnet</b></div></li>
+        <li><span class="inum">2</span><div>Select VPC: <b>iimt-vpc</b>
+          <div class="code"><div class="code-bar"><span class="code-lang">Public Subnet</span></div>
+            <pre><span class="k">Name</span>             : <span class="s">iimt-public-subnet</span>
+<span class="k">Availability Zone</span>: <span class="v">ap-south-1a</span>
+<span class="k">IPv4 CIDR</span>        : <span class="v">10.0.1.0/24</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">3</span><div>Click <b>Add new subnet</b> to add the private one in the same create operation</div></li>
+        <li><span class="inum">4</span><div>Add Private Subnet:
+          <div class="code"><div class="code-bar"><span class="code-lang">Private Subnet</span></div>
+            <pre><span class="k">Name</span>             : <span class="s">iimt-private-subnet</span>
+<span class="k">Availability Zone</span>: <span class="v">ap-south-1b</span>
+<span class="k">IPv4 CIDR</span>        : <span class="v">10.0.2.0/24</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">5</span><div>Click <b>Create subnet</b></div></li>
+      </ul>
+
+      <p style="margin:20px 0 8px; font-weight:600; color:var(--acc2);">Part B — Create and Attach Internet Gateway</p>
+      <ul class="ilist">
+        <li><span class="inum">6</span><div>Click <b>Internet Gateways</b> → <b>Create internet gateway</b><br>Name: <b>iimt-igw</b> → Click <b>Create</b></div></li>
+        <li><span class="inum">7</span><div>With <b>iimt-igw</b> selected → Click <b>Actions</b> → <b>Attach to VPC</b> → Select <b>iimt-vpc</b> → Click <b>Attach</b></div></li>
+      </ul>
+
+      <div class="box ok"><div class="box-h">Checkpoint</div>You now have: iimt-vpc → 2 subnets (public 10.0.1.0/24 + private 10.0.2.0/24) → iimt-igw attached. But traffic can't reach the internet yet — we need route tables.</div>
+    </div>
+  </div>
+
+  <!-- LAB 4 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 4 of 5</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">4</div>
+      <div><div class="step-title">Configure Route Tables</div><div class="step-sub">Tell AWS where to send traffic</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        Currently, both subnets are private (no internet route). We'll create a public route table with a route to our IGW, then associate it with the public subnet. The private subnet keeps the default (private) route.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Click <b>Route Tables</b> (left sidebar) → <b>Create route table</b>
+          <div class="code"><div class="code-bar"><span class="code-lang">Route Table</span></div>
+            <pre><span class="k">Name</span>: <span class="s">iimt-public-rt</span>
+<span class="k">VPC</span> : <span class="v">iimt-vpc</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">2</span><div>Click on <b>iimt-public-rt</b> → Click <b>Routes</b> tab → <b>Edit routes</b> → <b>Add route</b>
+          <div class="code"><div class="code-bar"><span class="code-lang">Add Route — Internet Traffic</span></div>
+            <pre><span class="k">Destination</span>: <span class="v">0.0.0.0/0</span>   <span class="c"># means "all internet traffic"</span>
+<span class="k">Target</span>     : <span class="v">Internet Gateway</span> → <span class="s">iimt-igw</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">3</span><div>Click <b>Save changes</b></div></li>
+        <li><span class="inum">4</span><div>Now associate this route table with the public subnet:<br>
+          Click <b>Subnet associations</b> tab → <b>Edit subnet associations</b> → Select <b>iimt-public-subnet</b> → <b>Save</b></div></li>
+        <li><span class="inum">5</span><div><b>Enable auto-assign public IP</b> on the public subnet:<br>
+          Go to <b>Subnets</b> → Select <b>iimt-public-subnet</b> → <b>Actions</b> → <b>Edit subnet settings</b> → Enable <b>Auto-assign public IPv4 address</b> → <b>Save</b></div></li>
+      </ul>
+      <div class="box ok">
+        <div class="box-h">Architecture So Far</div>
+        Internet → iimt-igw → iimt-public-rt → <strong>iimt-public-subnet (10.0.1.0/24)</strong> ✅ Internet accessible<br>
+        <em>No route to internet</em> → <strong>iimt-private-subnet (10.0.2.0/24)</strong> ✅ Private only
+      </div>
+    </div>
+  </div>
+
+  <!-- LAB 5 -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab 5 of 5</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">5</div>
+      <div><div class="step-title">Launch EC2 in Your Custom VPC</div><div class="step-sub">Prove your VPC works by running a web server inside it</div></div>
+    </div>
+    <div class="step-body">
+      <div class="box info">
+        <div class="box-h">What We Are Doing</div>
+        Launch an EC2 instance in the public subnet of our custom VPC, configure the Security Group, and verify the instance gets a public IP and is accessible.
+      </div>
+      <ul class="ilist">
+        <li><span class="inum">1</span><div>Go to <b>EC2</b> → <b>Launch Instance</b><br>
+          Name: <b>iimt-web-server</b> · AMI: <b>Amazon Linux 2023</b> · Instance type: <b>t2.micro</b></div></li>
+        <li><span class="inum">2</span><div>Under <b>Network settings</b> → Click <b>Edit</b>
+          <div class="code"><div class="code-bar"><span class="code-lang">Network Settings</span></div>
+            <pre><span class="k">VPC</span>              : <span class="v">iimt-vpc</span>
+<span class="k">Subnet</span>           : <span class="s">iimt-public-subnet</span>
+<span class="k">Auto-assign public IP</span>: <span class="v">Enable</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">3</span><div>Create a new Security Group:
+          <div class="code"><div class="code-bar"><span class="code-lang">Security Group Rules</span></div>
+            <pre><span class="k">Name</span>: <span class="s">iimt-web-sg</span>
+
+<span class="c"># INBOUND RULES:</span>
+<span class="k">Type</span> : <span class="v">SSH</span>    · Port <span class="s">22</span>  · Source: <span class="v">My IP</span>    <span class="c"># Admin access</span>
+<span class="k">Type</span> : <span class="v">HTTP</span>   · Port <span class="s">80</span>  · Source: <span class="v">0.0.0.0/0</span> <span class="c"># Web access</span></pre>
+          </div>
+        </div></li>
+        <li><span class="inum">4</span><div>Add User Data script to install a web server:
+          <div class="code"><div class="code-bar"><span class="code-lang">User Data (Advanced Details)</span></div>
+            <pre>#!/bin/bash
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+echo "&lt;h1&gt;Hello from IIMT VPC Lab!&lt;/h1&gt;" &gt; /var/www/html/index.html</pre>
+          </div>
+        </div></li>
+        <li><span class="inum">5</span><div>Click <b>Launch Instance</b> → Wait ~2 minutes for it to start</div></li>
+        <li><span class="inum">6</span><div>Copy the <b>Public IPv4 address</b> → Open in browser → You should see <strong>"Hello from IIMT VPC Lab!"</strong></div></li>
+      </ul>
+      <div class="box ok">
+        <div class="box-h">Success!</div>
+        Your EC2 instance is running inside <strong>your custom VPC</strong>, in <strong>your public subnet</strong>, protected by <strong>your Security Group</strong>, accessible via <strong>your Internet Gateway</strong>. You built all of this from scratch!
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAW A VPC ACTIVITY -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Closing Activity (10 min)</div><div class="div-line"></div></div>
+
+  <div class="act">
+    <span class="act-tag">🖊️ Pair Activity — Draw-a-VPC</span>
+    <h3>Activity: Design a VPC for a Food Delivery App — 10 Minutes</h3>
+    <p style="font-size:14px; color:rgba(255,255,255,.7); margin-bottom:14px;">Work in pairs. Draw on paper (or whiteboard). No laptop needed.</p>
+    <div class="box warn" style="margin:0;">
+      <div class="box-h">Scenario</div>
+      You are building a food delivery app like Swiggy. It has:<br>
+      <ul style="margin-left:16px; margin-top:8px; font-size:14px;">
+        <li>A website customers use to order food (web server)</li>
+        <li>An app backend that processes orders (app server)</li>
+        <li>A database that stores orders, restaurants, and user accounts</li>
+        <li>A payment processing service</li>
+      </ul>
+      <br>
+      <strong>Draw a VPC architecture showing:</strong><br>
+      1. Where each component goes (public or private subnet?)<br>
+      2. How the internet connects to your public components<br>
+      3. What Security Group rules you need<br><br>
+      <strong>Compare your design with the next pair. Are they the same? Different? Why?</strong>
+    </div>
+  </div>
+
+  <!-- RECAP TABLE -->
+  <div class="div"><div class="div-line"></div><div class="div-lbl">Lab Recap</div><div class="div-line"></div></div>
+
+  <div class="step">
+    <div class="step-hd">
+      <div class="snum">📋</div>
+      <div><div class="step-title">What We Built Today</div></div>
+    </div>
+    <div class="step-body">
+      <div class="tbl">
+        <table>
+          <thead><tr><th>Lab</th><th>What We Did</th><th>Key Learning</th></tr></thead>
+          <tbody>
+            <tr><td><b style="color:var(--acc)">Lab 1</b></td><td>Explored Default VPC</td><td>AWS creates a working VPC automatically — now we know what one looks like</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 2</b></td><td>Created Custom VPC (10.0.0.0/16)</td><td>VPC = empty container. IP range set at creation, cannot change later</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 3</b></td><td>Created 2 subnets + Internet Gateway</td><td>Subnets divide the VPC; IGW connects VPC to the internet</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 4</b></td><td>Configured Route Tables</td><td>The route 0.0.0.0/0 → IGW is what makes a subnet "public"</td></tr>
+            <tr><td><b style="color:var(--acc)">Lab 5</b></td><td>Launched EC2 in custom VPC with web server</td><td>Security Group controls what traffic reaches the instance</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div class="quiz">
+    <h3>🎯 Ask Students These Questions</h3>
+    <ul class="qlist">
+      <li class="qi"><span class="qi-icon">❓</span><div>You create a VPC with CIDR 10.0.0.0/16 and a subnet with CIDR 10.0.1.0/24. How many IP addresses does the VPC have? How many does the subnet have? Why is the actual usable count slightly less?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>You launch an EC2 in a subnet, but you cannot SSH into it. Name <strong>3 possible reasons</strong> — where would you check first, second, third?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>What is the single thing that makes a subnet "public" rather than "private"? (Hint: it's not the subnet itself.)</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>Your database server in a private subnet needs to download security updates from the internet. How do you allow this <strong>without</strong> making the subnet public or giving the database a public IP?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>You have a Security Group that allows port 80 inbound. A request comes in on port 80 and gets a response. Do you need to add an outbound rule for the response? Why or why not?</div></li>
+      <li class="qi"><span class="qi-icon">❓</span><div>You are building an e-commerce site. List the components and which subnet (public/private) each one belongs in. Justify your choices.</div></li>
+    </ul>
+  </div>
+
+  <footer class="foot" style="margin-top:32px;">
+    <b>AWS VPC — Virtual Private Cloud</b><br>
+    Lab Presentation · Cloud Computing, 1st Semester
+  </footer>
+
+</div>
