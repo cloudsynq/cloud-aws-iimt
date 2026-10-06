@@ -1,879 +1,766 @@
-<title>AWS S3 Theory Notes</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AWS S3 + EFS — Theory Notes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap">
 <style>
   :root {
-    --bg:         #FAFAF8;
-    --surface:    #FFFFFF;
-    --surface-2:  #F5F3EF;
-    --text:       #1A1A1A;
-    --muted:      #5A5A5A;
-    --light:      #9A9A9A;
-    --accent:     #FF9900;
-    --acc-light:  #FFF4E0;
-    --acc-dark:   #CC7A00;
-    --aws-dark:   #232F3E;
-    --aws-mid:    #37475A;
-    --border:     #E8E4DC;
-    --border-lt:  #F2EFE8;
-    --green:      #1A7F1A;
-    --green-bg:   #EAF7EA;
-    --blue:       #0066CC;
-    --blue-bg:    #E8F0FB;
-    --red:        #CC2200;
-    --red-bg:     #FDECEA;
-    --purple:     #6B3FA0;
-    --purple-bg:  #F0E8FA;
-    --shadow:     0 2px 12px rgba(0,0,0,.07);
-    color-scheme: light;
+    --bg:#FAFAF8;--surf:#FFFFFF;--surf2:#F4F2EE;--surf3:#ECEAE4;
+    --text:#1A1A16;--muted:#6A6458;
+    --acc:#FF9900;--acc2:#CC6600;--acc3:#FFF4E0;
+    --border:#E0DBD0;
+    --green:#2D7A2D;--grn-bg:#F0FAF0;
+    --blue:#1A5FAA;--blu-bg:#EEF4FF;
+    --red:#CC2200;--red-bg:#FFF0EE;
+    --teal:#007A75;--teal-bg:#E0F7F5;
+    --shadow:0 2px 16px rgba(0,0,0,.08);
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg:         #111008;
-      --surface:    #1C1A12;
-      --surface-2:  #252218;
-      --text:       #EDE8DC;
-      --muted:      #9A9278;
-      --light:      #5A5240;
-      --accent:     #FFAA22;
-      --acc-light:  #2A1A00;
-      --acc-dark:   #FFCC66;
-      --aws-dark:   #0A0C10;
-      --aws-mid:    #1A1E26;
-      --border:     #2E2A1E;
-      --border-lt:  #221F15;
-      --green:      #5ACB5A;
-      --green-bg:   #0A1F0A;
-      --blue:       #60A8FF;
-      --blue-bg:    #080F20;
-      --red:        #FF6655;
-      --red-bg:     #200A08;
-      --purple:     #C090F0;
-      --purple-bg:  #150A28;
-      --shadow:     0 2px 12px rgba(0,0,0,.4);
-      color-scheme: dark;
-    }
+  @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --bg:#0C0A04;--surf:#181408;--surf2:#211C0C;--surf3:#2A2410;
+    --text:#F0E8D0;--muted:#9A8A60;--acc:#FF9900;--acc2:#FFCC66;--acc3:#2A1A00;
+    --border:#302800;--green:#6DCB6D;--grn-bg:#0A1A0A;
+    --blue:#6AB0FF;--blu-bg:#050F25;--red:#FF7766;--red-bg:#200808;
+    --teal:#4DCFC9;--teal-bg:#051A18;--shadow:0 4px 24px rgba(0,0,0,.6);
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0C0A04;--surf:#181408;--surf2:#211C0C;--surf3:#2A2410;
+    --text:#F0E8D0;--muted:#9A8A60;--acc:#FF9900;--acc2:#FFCC66;--acc3:#2A1A00;
+    --border:#302800;--green:#6DCB6D;--grn-bg:#0A1A0A;
+    --blue:#6AB0FF;--blu-bg:#050F25;--red:#FF7766;--red-bg:#200808;
+    --teal:#4DCFC9;--teal-bg:#051A18;--shadow:0 4px 24px rgba(0,0,0,.6);
   }
-  :root[data-theme="dark"] {
-    --bg:         #111008;
-    --surface:    #1C1A12;
-    --surface-2:  #252218;
-    --text:       #EDE8DC;
-    --muted:      #9A9278;
-    --light:      #5A5240;
-    --accent:     #FFAA22;
-    --acc-light:  #2A1A00;
-    --acc-dark:   #FFCC66;
-    --aws-dark:   #0A0C10;
-    --aws-mid:    #1A1E26;
-    --border:     #2E2A1E;
-    --border-lt:  #221F15;
-    --green:      #5ACB5A;
-    --green-bg:   #0A1F0A;
-    --blue:       #60A8FF;
-    --blue-bg:    #080F20;
-    --red:        #FF6655;
-    --red-bg:     #200A08;
-    --purple:     #C090F0;
-    --purple-bg:  #150A28;
-    --shadow:     0 2px 12px rgba(0,0,0,.4);
-    color-scheme: dark;
-  }
-
-  *, *::before, *::after { box-sizing: border-box; margin: 0; }
-  body {
-    font-family: 'Inter', system-ui, sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 15px;
-    line-height: 1.75;
-    padding-inline: 16px;
-  }
-  .wrap { max-width: 900px; margin: 0 auto; padding-block: 36px 72px; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:15px;line-height:1.7;padding-inline:16px;}
+  .wrap{max-width:860px;margin:0 auto;padding-block:32px 72px;}
 
   /* HEADER */
-  .hdr {
-    background: var(--aws-dark);
-    border-radius: 18px;
-    padding: 44px 48px;
-    margin-bottom: 32px;
-    position: relative;
-    overflow: hidden;
-  }
-  .hdr::before {
-    content:'';
-    position:absolute; top:-80px; right:-80px;
-    width:360px; height:360px; border-radius:50%;
-    background: radial-gradient(circle, rgba(255,153,0,.20) 0%, transparent 65%);
-    pointer-events:none;
-  }
-  .hdr-tag {
-    font-family:'JetBrains Mono',monospace;
-    font-size:11px; font-weight:600;
-    letter-spacing:.12em; text-transform:uppercase;
-    color:var(--accent); margin-bottom:12px;
-  }
-  .hdr h1 {
-    font-family:'Outfit',sans-serif;
-    font-size:2.4rem; font-weight:800;
-    color:#FFF; line-height:1.15;
-    text-wrap:balance; margin-bottom:14px;
-  }
-  .hdr h1 em { color:var(--accent); font-style:normal; }
-  .hdr-desc { font-size:.95rem; color:rgba(255,255,255,.65); max-width:480px; margin-bottom:22px; }
-  .hdr-pills { display:flex; flex-wrap:wrap; gap:8px; }
-  .hdr-pill {
-    background:rgba(255,153,0,.15);
-    border:1px solid rgba(255,153,0,.30);
-    color:rgba(255,255,255,.80);
-    border-radius:100px; padding:4px 14px;
-    font-size:12px; font-weight:500;
-  }
+  .hdr{background:linear-gradient(140deg,#1A0D00 0%,#2A1400 50%,#3A1A00 100%);border-radius:20px;padding:52px 48px;margin-bottom:36px;position:relative;overflow:hidden;color:#FFF;}
+  .hdr::before{content:'';position:absolute;top:-80px;right:-80px;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(255,153,0,.25) 0%,transparent 65%);}
+  .service-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(255,153,0,.2);border:1px solid rgba(255,153,0,.4);border-radius:100px;padding:5px 16px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#FFCC66;margin-bottom:20px;font-family:'JetBrains Mono',monospace;}
+  .hdr h1{font-family:'Outfit',sans-serif;font-size:2.8rem;font-weight:900;line-height:1.1;text-wrap:balance;margin-bottom:12px;}
+  .hdr h1 span{color:#FF9900;}
+  .hdr p{font-size:1rem;color:rgba(255,255,255,.65);max-width:540px;}
+
+  /* 3-TYPE STORAGE BANNER */
+  .storage-banner{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px;}
+  .st-card{border-radius:12px;padding:16px;border:2px solid;text-align:center;}
+  .st-card.blk{border-color:#FF9900;background:var(--acc3);}
+  .st-card.obj{border-color:#1A5FAA;background:var(--blu-bg);}
+  .st-card.file{border-color:#2D7A2D;background:var(--grn-bg);}
+  .st-card .sticon{font-size:1.8rem;display:block;margin-bottom:6px;}
+  .st-card h4{font-family:'Outfit',sans-serif;font-weight:800;font-size:.82rem;margin-bottom:2px;color:var(--text);}
+  .st-card p{font-size:11.5px;color:var(--muted);margin:0;line-height:1.3;}
+  .st-card .aws-eq{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;margin-top:4px;}
+  .st-card.blk .aws-eq{color:#CC6600;}.st-card.obj .aws-eq{color:#1A5FAA;}.st-card.file .aws-eq{color:#2D7A2D;}
+  .st-current{font-size:10px;background:#FF9900;color:#000;font-weight:700;padding:2px 8px;border-radius:100px;font-family:'JetBrains Mono',monospace;}
 
   /* TOC */
-  .toc {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:14px; padding:24px 28px;
-    margin-bottom:28px; box-shadow:var(--shadow);
-  }
-  .toc-title {
-    font-family:'Outfit',sans-serif; font-size:12px; font-weight:700;
-    letter-spacing:.09em; text-transform:uppercase;
-    color:var(--muted); margin-bottom:16px;
-  }
-  .toc-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(210px,1fr));
-    gap:6px;
-  }
-  .toc-grid a {
-    display:flex; align-items:center; gap:9px;
-    color:var(--text); text-decoration:none;
-    font-size:13.5px; padding:7px 10px;
-    border-radius:8px; transition:background .15s, color .15s;
-  }
-  .toc-grid a:hover { background:var(--acc-light); color:var(--acc-dark); }
-  .toc-n {
-    font-family:'JetBrains Mono',monospace;
-    font-size:10.5px; font-weight:600;
-    color:var(--accent); background:var(--acc-light);
-    border-radius:5px; padding:2px 7px; flex-shrink:0;
-  }
+  .toc{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:22px 28px;margin-bottom:28px;box-shadow:var(--shadow);}
+  .toc-title{font-family:'Outfit',sans-serif;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+  .toc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;}
+  .toc-grid a{display:flex;align-items:center;gap:8px;color:var(--text);text-decoration:none;font-size:13px;padding:6px 10px;border-radius:7px;transition:background .15s;}
+  .toc-grid a:hover{background:var(--acc3);color:var(--acc2);}
+  .toc-n{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:var(--acc2);background:var(--acc3);border-radius:5px;padding:2px 7px;flex-shrink:0;}
+  .toc-n.grn{color:var(--green);background:var(--grn-bg);}
 
   /* SECTION */
-  .sec {
-    background:var(--surface); border:1px solid var(--border);
-    border-radius:14px; padding:32px 36px;
-    margin-bottom:22px; box-shadow:var(--shadow);
-    scroll-margin-top:16px;
-  }
-  .sec-eye {
-    font-family:'JetBrains Mono',monospace;
-    font-size:10px; font-weight:600;
-    letter-spacing:.12em; text-transform:uppercase;
-    color:var(--accent); margin-bottom:6px;
-  }
-  .sec h2 {
-    font-family:'Outfit',sans-serif;
-    font-size:1.45rem; font-weight:700;
-    color:var(--text); margin-bottom:20px;
-    padding-bottom:14px;
-    border-bottom:2px solid var(--border-lt);
-    text-wrap:balance;
-  }
-  .sec h3 {
-    font-family:'Outfit',sans-serif;
-    font-size:1.05rem; font-weight:600;
-    color:var(--text); margin:26px 0 10px;
-  }
-  .sec h3::before { content:'▸ '; color:var(--accent); }
-  .sec p { color:var(--text); margin-bottom:12px; }
-  .sec ul, .sec ol { padding-left:20px; margin-bottom:14px; display:flex; flex-direction:column; gap:6px; }
-  .sec li { color:var(--text); }
-  .sec li::marker { color:var(--accent); }
+  .sec{display:flex;align-items:center;gap:12px;margin:36px 0 16px;}
+  .sec-num{width:32px;height:32px;border-radius:50%;background:var(--acc);color:#000;font-weight:800;font-family:'Outfit',sans-serif;font-size:.85rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .sec-num.grn{background:var(--green);color:#FFF;}
+  .sec h2{font-family:'Outfit',sans-serif;font-size:1.25rem;font-weight:800;}
+  .sec .new-badge{font-size:10px;background:var(--green);color:#FFF;font-weight:700;padding:2px 8px;border-radius:100px;font-family:'JetBrains Mono',monospace;}
+
+  /* CONTENT BLOCKS */
+  .card{background:var(--surf);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .card h3{font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--acc2);}
+  .card p{margin-bottom:10px;}.card p:last-child{margin-bottom:0;}
+  .card ul,.card ol{padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:14px;}
+  .card li::marker{color:var(--acc);}
 
   /* ANALOGY */
-  .analogy {
-    background:var(--acc-light);
-    border-left:4px solid var(--accent);
-    border-radius:0 10px 10px 0;
-    padding:16px 20px; margin:18px 0; font-size:14px;
-  }
-  .analogy-h {
-    font-family:'Outfit',sans-serif; font-weight:700;
-    font-size:12px; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--acc-dark); margin-bottom:6px;
-  }
+  .analogy{background:var(--acc3);border:2px solid var(--acc);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+  .analogy-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--acc2);margin-bottom:10px;display:block;}
+  .analogy h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px;}
+  .analogy p{font-size:14px;line-height:1.6;}
 
-  /* CALLOUT */
-  .call {
-    border-radius:10px; padding:16px 20px;
-    margin:18px 0; border-left:4px solid; font-size:14px;
-  }
-  .call-h {
-    font-family:'Outfit',sans-serif; font-weight:700;
-    font-size:12px; letter-spacing:.04em;
-    text-transform:uppercase; margin-bottom:6px;
-  }
-  .call.info  { background:var(--blue-bg);   border-color:var(--blue);   }
-  .call.info .call-h  { color:var(--blue); }
-  .call.tip   { background:var(--green-bg);  border-color:var(--green);  }
-  .call.tip .call-h   { color:var(--green); }
-  .call.warn  { background:var(--acc-light); border-color:var(--accent); }
-  .call.warn .call-h  { color:var(--acc-dark); }
-  .call.danger{ background:var(--red-bg);   border-color:var(--red);    }
-  .call.danger .call-h{ color:var(--red); }
+  /* EFS ANALOGY */
+  .analogy-grn{background:var(--grn-bg);border:2px solid var(--green);border-radius:14px;padding:22px 24px;margin-bottom:16px;}
+  .analogy-grn .analogy-tag{color:var(--green);}
+  .analogy-grn h3{font-family:'Outfit',sans-serif;font-weight:800;font-size:1rem;margin-bottom:8px;}
+  .analogy-grn p{font-size:14px;line-height:1.6;}
 
-  /* STORAGE CLASS CARDS */
-  .sc-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
-    gap:12px; margin:18px 0;
-  }
-  .sc {
-    border:1.5px solid var(--border);
-    border-radius:12px; padding:18px 16px;
-    background:var(--surface-2);
-  }
-  .sc-name {
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px; font-weight:700;
-    color:var(--accent); margin-bottom:4px;
-  }
-  .sc h4 {
-    font-family:'Outfit',sans-serif; font-weight:700;
-    font-size:.88rem; color:var(--text); margin-bottom:6px;
-  }
-  .sc p { font-size:12.5px; color:var(--muted); line-height:1.5; margin:0; }
-  .sc-meta { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
-  .sc-tag {
-    font-size:10.5px; font-weight:600; padding:2px 8px;
-    border-radius:100px; font-family:'JetBrains Mono',monospace;
-  }
-  .tag-cost  { background:var(--green-bg); color:var(--green); }
-  .tag-avail { background:var(--blue-bg);  color:var(--blue);  }
-  .tag-use   { background:var(--acc-light);color:var(--acc-dark); }
+  /* REAL COMPANY SCENARIO */
+  .scenario{background:var(--teal-bg);border-left:4px solid var(--teal);border-radius:0 12px 12px 0;padding:18px 22px;margin-bottom:16px;}
+  .scenario-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:10px;display:block;}
+  .scenario p{font-size:14px;line-height:1.6;margin-bottom:8px;}
+  .scenario p:last-child{margin-bottom:0;}
+
+  /* GRIDS */
+  .cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+  .comp{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;}
+  .comp-icon{font-size:1.8rem;margin-bottom:8px;display:block;}
+  .comp h4{font-family:'Outfit',sans-serif;font-weight:700;font-size:.9rem;margin-bottom:4px;color:var(--acc2);}
+  .comp p{font-size:12.5px;color:var(--muted);line-height:1.45;}
+
+  .sc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+  .sc-card{background:var(--surf);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative;}
+  .sc-card.hot{border-top:3px solid var(--blue);}
+  .sc-card.int{border-top:3px solid var(--acc);}
+  .sc-card.ia{border-top:3px solid #7B5EA7;}
+  .sc-card.oia{border-top:3px solid #C0392B;}
+  .sc-card.gi{border-top:3px solid #1E8449;}
+  .sc-card.gf{border-top:3px solid #117A65;}
+  .sc-card.gda{border-top:3px solid #154360;}
+  .sc-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:6px;display:inline-block;margin-bottom:8px;}
+  .hot .sc-tag{background:var(--blu-bg);color:var(--blue);}
+  .int .sc-tag{background:var(--acc3);color:var(--acc2);}
+  .ia .sc-tag{background:#F0EAF8;color:#7B5EA7;}
+  .oia .sc-tag{background:#FDECEA;color:#C0392B;}
+  .gi .sc-tag{background:#E9F7EF;color:#1E8449;}
+  .gf .sc-tag{background:#E8F8F5;color:#117A65;}
+  .gda .sc-tag{background:#EAF2F8;color:#154360;}
+  .sc-card h4{font-family:'Outfit',sans-serif;font-weight:800;font-size:.92rem;margin-bottom:4px;}
+  .sc-card p{font-size:12px;color:var(--muted);line-height:1.4;}
+  .sc-cost{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--green);margin-top:6px;}
+
+  /* CALLOUT BOXES */
+  .box{border-radius:10px;padding:16px 18px;margin:14px 0;border-left:4px solid;font-size:14px;}
+  .box-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px;}
+  .box.info{background:var(--blu-bg);border-color:var(--blue);}
+  .box.info .box-title{color:var(--blue);}
+  .box.tip{background:var(--grn-bg);border-color:var(--green);}
+  .box.tip .box-title{color:var(--green);}
+  .box.warn{background:var(--acc3);border-color:var(--acc);}
+  .box.warn .box-title{color:var(--acc2);}
+  .box.danger{background:var(--red-bg);border-color:var(--red);}
+  .box.danger .box-title{color:var(--red);}
+  .box.grn-tip{background:var(--grn-bg);border-color:var(--green);}
+  .box.grn-tip .box-title{color:var(--green);}
+
+  /* EFS SECTION DIVIDER */
+  .efs-divider{background:linear-gradient(135deg,#0A2A0A,#1A4A1A);border-radius:16px;padding:32px 36px;margin:36px 0 24px;color:#FFF;position:relative;overflow:hidden;}
+  .efs-divider::before{content:'';position:absolute;top:-60px;right:-60px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(45,122,45,.4) 0%,transparent 70%);}
+  .efs-divider .efs-tag{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#6DCB6D;margin-bottom:10px;display:block;}
+  .efs-divider h2{font-family:'Outfit',sans-serif;font-size:1.5rem;font-weight:900;margin-bottom:6px;}
+  .efs-divider h2 span{color:#6DCB6D;}
+  .efs-divider p{font-size:14px;color:rgba(255,255,255,.65);max-width:520px;}
+
+  /* EFS CARDS */
+  .efs-card{background:var(--surf);border:2px solid var(--green);border-radius:14px;padding:24px;margin-bottom:14px;box-shadow:var(--shadow);}
+  .efs-card h3{font-family:'Outfit',sans-serif;font-size:.95rem;font-weight:700;margin-bottom:8px;color:var(--green);}
+
+  .pm-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .pm-card{border-radius:12px;padding:18px;border:2px solid;}
+  .pm-card.gp{border-color:var(--acc);background:var(--acc3);}
+  .pm-card.mi{border-color:var(--blue);background:var(--blu-bg);}
+  .pm-card h4{font-family:'Outfit',sans-serif;font-weight:800;font-size:.9rem;margin-bottom:8px;}
+  .pm-card.gp h4{color:var(--acc2);}
+  .pm-card.mi h4{color:var(--blue);}
+  .pm-card p{font-size:13px;line-height:1.5;}
+  .pm-card .use{font-size:12px;font-weight:600;margin-top:8px;}
+  .pm-card.gp .use{color:var(--acc2);}
+  .pm-card.mi .use{color:var(--blue);}
 
   /* TABLE */
-  .tbl-wrap { overflow-x:auto; margin:18px 0; border-radius:10px; border:1px solid var(--border); }
-  table { width:100%; border-collapse:collapse; font-size:13.5px; }
-  th {
-    background:var(--aws-dark); color:#FFF;
-    font-family:'Outfit',sans-serif; font-weight:600;
-    font-size:12px; text-align:left; padding:11px 16px;
-  }
-  th:first-child { border-radius:9px 0 0 0; }
-  th:last-child  { border-radius:0 9px 0 0; }
-  td { padding:10px 16px; border-bottom:1px solid var(--border-lt); vertical-align:top; }
-  tr:last-child td { border-bottom:none; }
-  tr:nth-child(even) td { background:var(--surface-2); }
+  .tbl{overflow-x:auto;margin:16px 0;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th{background:var(--surf2);color:var(--acc2);font-family:'Outfit',sans-serif;font-weight:700;font-size:11.5px;letter-spacing:.04em;text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);}
+  th.grn-h{color:var(--green);}
+  td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  tr:nth-child(even) td{background:var(--surf2);}
 
-  code {
-    font-family:'JetBrains Mono',monospace;
-    font-size:12px; background:var(--surface-2);
-    border:1px solid var(--border); border-radius:5px;
-    padding:1px 6px; color:var(--accent);
-  }
+  /* STEPS */
+  .steps{list-style:none;display:flex;flex-direction:column;gap:10px;margin:14px 0;}
+  .steps li{display:flex;align-items:flex-start;gap:12px;font-size:14px;}
+  .steps .sn{flex-shrink:0;width:26px;height:26px;border-radius:50%;background:var(--acc);color:#000;font-weight:800;font-family:'Outfit',sans-serif;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .steps .sn.g{background:var(--green);color:#FFF;}
+
+  /* PILLS */
+  .pills{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0;}
+  .pill{background:var(--acc3);border:1px solid rgba(255,153,0,.4);border-radius:100px;padding:5px 14px;font-size:12.5px;font-weight:600;color:var(--acc2);}
+  .pill.g{background:var(--grn-bg);border-color:rgba(45,122,45,.4);color:var(--green);}
 
   /* LIFECYCLE FLOW */
-  .flow {
-    display:flex; align-items:center; flex-wrap:wrap;
-    gap:0; margin:16px 0;
-  }
-  .flow-step {
-    background:var(--surface-2); border:1px solid var(--border);
-    border-radius:10px; padding:12px 16px;
-    text-align:center; min-width:130px; flex:1;
-  }
-  .flow-step .fs-class {
-    font-family:'JetBrains Mono',monospace; font-size:11px;
-    font-weight:700; color:var(--accent); margin-bottom:4px;
-  }
-  .flow-step .fs-day {
-    font-size:12px; color:var(--muted);
-  }
-  .flow-arrow {
-    color:var(--accent); font-size:1.2rem;
-    padding:0 4px; flex-shrink:0;
-  }
+  .lf{display:flex;flex-direction:column;gap:0;margin:16px 0;}
+  .lf-row{display:flex;align-items:stretch;}
+  .lf-box{background:var(--surf);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:0;}
+  .lf-box h4{font-family:'Outfit',sans-serif;font-size:.85rem;font-weight:700;margin-bottom:4px;color:var(--acc2);}
+  .lf-box p{font-size:12px;color:var(--muted);}
+  .lf-box .price{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--green);font-weight:700;margin-top:4px;}
+  .lf-arr{display:flex;align-items:center;justify-content:center;padding:0 8px;font-size:1.2rem;color:var(--muted);transform:rotate(90deg);}
 
-  /* SUMMARY */
-  .sum {
-    background:var(--aws-dark); border-radius:14px;
-    padding:30px 34px; margin:24px 0;
-    border:1px solid #3A4A5E;
-  }
-  .sum h3 {
-    font-family:'Outfit',sans-serif; font-weight:800;
-    font-size:1.1rem; color:#FFF;
-    margin-bottom:16px; padding-bottom:12px;
-    border-bottom:1px solid rgba(255,255,255,.12);
-  }
-  .sum-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-  .sum-item {
-    display:flex; align-items:flex-start; gap:10px;
-    background:rgba(255,255,255,.06);
-    border-radius:9px; padding:12px 14px; font-size:13.5px;
-    color:rgba(255,255,255,.80);
-  }
-  .sum-dot {
-    width:8px; height:8px; border-radius:50%;
-    background:var(--accent); flex-shrink:0; margin-top:6px;
-  }
+  .foot{text-align:center;padding-top:28px;border-top:1px solid var(--border);color:var(--muted);font-size:12px;margin-top:16px;}
+  .foot b{color:var(--acc2);}
 
-  .foot {
-    text-align:center; padding-top:28px;
-    border-top:1px solid var(--border);
-    color:var(--muted); font-size:12.5px; margin-top:12px;
-  }
-  .foot b { color:var(--accent); }
-
-  @media (max-width:620px) {
-    .sec { padding:22px 18px; }
-    .hdr { padding:30px 22px; }
-    .hdr h1 { font-size:1.7rem; }
-    .sc-grid { grid-template-columns:1fr; }
-    .sum-grid { grid-template-columns:1fr; }
-    .flow { flex-direction:column; align-items:stretch; }
-    .flow-arrow { transform:rotate(90deg); text-align:center; }
+  @media(max-width:600px){
+    .hdr{padding:28px 20px;}.hdr h1{font-size:1.8rem;}
+    .cgrid,.sc-grid,.pm-grid{grid-template-columns:1fr;}
+    .storage-banner{grid-template-columns:1fr;}
   }
 </style>
-
+</head>
+<body>
 <div class="wrap">
 
   <header class="hdr">
-    <div class="hdr-tag">Amazon Web Services · Simple Storage Service</div>
-    <h1>AWS <em>S3</em><br>Complete Theory Notes</h1>
-    <p class="hdr-desc">Everything you need to know about Amazon S3 — from basics to storage classes, versioning, security, and lifecycle policies.</p>
-    <div class="hdr-pills">
-      <span class="hdr-pill">Object Storage</span>
-      <span class="hdr-pill">Beginner Friendly</span>
-      <span class="hdr-pill">Azure Comparison Included</span>
-      <span class="hdr-pill">Interview Ready</span>
-    </div>
+    <div class="service-tag">🗂️ AWS Object + File Storage · Module 04</div>
+    <h1>Amazon <span>S3</span> + <span style="color:#6DCB6D;">EFS</span><br>Theory Notes</h1>
+    <p>S3 (Simple Storage Service) for object storage + EFS (Elastic File System) for shared file storage. Complete guide with real Indian company scenarios.</p>
   </header>
 
-  <div class="toc">
-    <div class="toc-title">Topics Covered</div>
-    <div class="toc-grid">
-      <a href="#s1"><span class="toc-n">01</span>What is S3?</a>
-      <a href="#s2"><span class="toc-n">02</span>Buckets &amp; Objects</a>
-      <a href="#s3"><span class="toc-n">03</span>Storage Classes</a>
-      <a href="#s4"><span class="toc-n">04</span>Access Control</a>
-      <a href="#s5"><span class="toc-n">05</span>Pre-signed URLs</a>
-      <a href="#s6"><span class="toc-n">06</span>Versioning</a>
-      <a href="#s7"><span class="toc-n">07</span>Static Website Hosting</a>
-      <a href="#s8"><span class="toc-n">08</span>Lifecycle Policies</a>
-      <a href="#s9"><span class="toc-n">09</span>Replication</a>
-      <a href="#s10"><span class="toc-n">10</span>Encryption</a>
-      <a href="#s11"><span class="toc-n">11</span>Azure Comparison</a>
-      <a href="#s12"><span class="toc-n">12</span>Key Summary</a>
+  <!-- 3 STORAGE TYPES BANNER -->
+  <div class="storage-banner">
+    <div class="st-card blk">
+      <span class="sticon">💾</span>
+      <h4>Block Storage</h4>
+      <p>VM's virtual hard drive. Attached directly to EC2.</p>
+      <div class="aws-eq">AWS: Amazon EBS → Module 03</div>
+    </div>
+    <div class="st-card obj">
+      <span class="sticon">🗂️</span>
+      <h4>Object Storage <span class="st-current">S3 — HERE</span></h4>
+      <p>Files stored via URL. Unlimited capacity, any file type.</p>
+      <div class="aws-eq">AWS: Amazon S3</div>
+    </div>
+    <div class="st-card file">
+      <span class="sticon">📁</span>
+      <h4>File Storage <span class="st-current" style="background:var(--green);">EFS — HERE</span></h4>
+      <p>Shared NFS drive for multiple Linux EC2 instances.</p>
+      <div class="aws-eq">AWS: Amazon EFS (this module)</div>
     </div>
   </div>
 
-  <!-- S1 -->
-  <section class="sec" id="s1">
-    <div class="sec-eye">01</div>
-    <h2>What is Amazon S3?</h2>
-    <p><strong>Amazon S3 (Simple Storage Service)</strong> is AWS's object storage service. It lets you store and retrieve any amount of data — files, images, videos, backups, logs — from anywhere in the world over the internet.</p>
-
-    <div class="analogy">
-      <div class="analogy-h">Simple Analogy</div>
-      Think of S3 as a <strong>giant digital locker room in the cloud</strong>. Each locker is a <em>Bucket</em>. Inside each locker, you can store anything — files, images, videos. Anyone with the right key can open the locker and access the items. You can have as many lockers as you need, and each can store an unlimited amount of stuff.
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Topics Covered — S3 (01–12) + EFS (13–17)</div>
+    <div class="toc-grid">
+      <a href="#s1"><span class="toc-n">01</span> What is S3?</a>
+      <a href="#s2"><span class="toc-n">02</span> Buckets &amp; Objects</a>
+      <a href="#s3"><span class="toc-n">03</span> Storage Classes</a>
+      <a href="#s4"><span class="toc-n">04</span> Access Control</a>
+      <a href="#s5"><span class="toc-n">05</span> Pre-signed URLs</a>
+      <a href="#s6"><span class="toc-n">06</span> Versioning</a>
+      <a href="#s7"><span class="toc-n">07</span> Static Website Hosting</a>
+      <a href="#s8"><span class="toc-n">08</span> Lifecycle Policies</a>
+      <a href="#s9"><span class="toc-n">09</span> Replication</a>
+      <a href="#s10"><span class="toc-n">10</span> S3 Encryption</a>
+      <a href="#s11"><span class="toc-n">11</span> AWS vs Azure Comparison</a>
+      <a href="#s12"><span class="toc-n">12</span> S3 Summary</a>
+      <a href="#efs1"><span class="toc-n grn">13</span> What is EFS?</a>
+      <a href="#efs2"><span class="toc-n grn">14</span> Performance Modes</a>
+      <a href="#efs3"><span class="toc-n grn">15</span> EFS Storage Classes</a>
+      <a href="#efs4"><span class="toc-n grn">16</span> EBS vs S3 vs EFS</a>
+      <a href="#efs5"><span class="toc-n grn">17</span> EFS Summary</a>
     </div>
+  </div>
 
-    <h3>Why is S3 So Popular?</h3>
+
+  <!-- ═══════════════════════ S1 ═══════════════════════ -->
+  <div class="sec" id="s1"><div class="sec-num">1</div><h2>What is Amazon S3?</h2></div>
+
+  <div class="card">
+    <p><strong>Amazon S3 (Simple Storage Service)</strong> is AWS's object storage service. Unlike EBS (which is a hard drive attached to one EC2), S3 is an <strong>internet-accessible storage</strong> — you can store any file and access it via a URL from anywhere in the world.</p>
+    <p>S3 is one of AWS's oldest and most-used services. It stores <strong>objects</strong> (files + metadata) inside <strong>buckets</strong> (containers). There is no folder structure in S3 — only the illusion of folders through "/" in object names.</p>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">☁️ Analogy — Google Drive for Applications</span>
+    <h3>Think of S3 as Google Drive for your applications.</h3>
+    <p>You upload files. Each file gets a URL. Any application (or person) with permission can download it via that URL. Unlike Google Drive for humans, S3 stores billions of files and serves billions of requests per day — at any scale. It never gets "full" — storage is unlimited, you only pay for what you use.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp"><span class="comp-icon">♾️</span><h4>Unlimited Storage</h4><p>No capacity limit. Store 1 file or 1 billion files. Individual objects up to 5 TB.</p></div>
+    <div class="comp"><span class="comp-icon">🌐</span><h4>Access via URL</h4><p>Every object has a unique URL. Access it from any browser, app, or region worldwide.</p></div>
+    <div class="comp"><span class="comp-icon">🛡️</span><h4>11 Nines Durability</h4><p>99.999999999% — AWS replicates your data across 3+ AZs automatically. Almost impossible to lose data.</p></div>
+    <div class="comp"><span class="comp-icon">💰</span><h4>Pay as You Use</h4><p>Pay only for storage used + data transferred. No upfront commitment. Prices from $0.023/GB/month.</p></div>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios</span>
+    <p><strong>Hotstar</strong> (now Disney+ Hotstar) streams to 500 million+ users. Every cricket match, movie, and web series is stored on AWS S3. The video files (each season of a show can be 500 GB+), thumbnail images, subtitle files, and chapter markers are all stored as S3 objects. When you open Hotstar and see a show thumbnail — that image is being served from an S3 bucket via Amazon CloudFront (CDN). S3's 11-nines durability ensures Hotstar has never lost a single video file since launch.</p>
+    <p><strong>Zepto</strong> (10-minute grocery delivery app) stores all product images — photos of 10,000+ grocery items — in S3. Each product has 3-4 high-resolution images. S3 serves these images to the Zepto app and website. When a Zepto engineer updates a product image, they just replace the S3 object — the app everywhere automatically shows the new image within minutes.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S2 ═══════════════════════ -->
+  <div class="sec" id="s2"><div class="sec-num">2</div><h2>Buckets &amp; Objects</h2></div>
+
+  <div class="card">
+    <p>S3 has a simple two-level structure: <strong>Buckets</strong> contain <strong>Objects</strong>.</p>
     <ul>
-      <li><strong>Unlimited storage</strong> — no capacity limit, store as much as you want</li>
-      <li><strong>99.999999999% durability (11 nines)</strong> — AWS automatically keeps multiple copies of your data</li>
-      <li><strong>Global access</strong> — access your files from anywhere via a URL</li>
-      <li><strong>Pay as you use</strong> — no upfront cost; you pay only for what you store and transfer</li>
-      <li><strong>Any file type</strong> — images, videos, PDFs, zips, logs, code — anything</li>
-      <li><strong>Integrates with everything</strong> — EC2, Lambda, CloudFront, RDS — almost every AWS service uses S3</li>
+      <li><strong>Bucket</strong> = Container / folder at the top level. Name must be globally unique across all AWS accounts worldwide.</li>
+      <li><strong>Object</strong> = Any file stored in a bucket. Consists of: the file data + metadata (key-value pairs about the file).</li>
+      <li><strong>Key</strong> = The object's unique name within the bucket. Can contain "/" to simulate a folder structure (e.g., <code>images/products/zepto-apple.jpg</code>).</li>
     </ul>
+  </div>
 
-    <h3>Common Use Cases</h3>
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Concept</th><th>Details</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Bucket Name</strong></td><td>Globally unique, 3-63 chars, lowercase, no underscores</td><td><code>zomato-food-images-prod</code></td></tr>
+        <tr><td><strong>Object Key</strong></td><td>Full path to object inside bucket</td><td><code>restaurants/delhi/biryani.jpg</code></td></tr>
+        <tr><td><strong>Object URL</strong></td><td>https://[bucket].s3.[region].amazonaws.com/[key]</td><td><code>https://zomato-food-images-prod.s3.ap-south-1.amazonaws.com/restaurants/delhi/biryani.jpg</code></td></tr>
+        <tr><td><strong>Max Object Size</strong></td><td>5 TB per single object (use multipart upload for &gt;100 MB)</td><td>A 2-hour HD movie = ~4 GB — fine for S3</td></tr>
+        <tr><td><strong>Bucket Region</strong></td><td>Chosen at creation, cannot be changed</td><td>Mumbai (ap-south-1) for Indian user data</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenario — Zomato's Bucket Structure</span>
+    <p><strong>Zomato</strong> organizes its S3 buckets like this:</p>
+    <p>• <code>zomato-restaurant-images-prod</code> → Food photos uploaded by restaurants (1M+ images)</p>
+    <p>• <code>zomato-user-profile-photos</code> → Profile pictures of 100M+ users</p>
+    <p>• <code>zomato-order-invoices-2026</code> → PDF invoices for all orders (compliance)</p>
+    <p>• <code>zomato-analytics-raw-data</code> → Click-stream data for data science team</p>
+    <p>Inside <code>zomato-restaurant-images-prod</code>, objects are organized: <code>cities/delhi/restaurants/biryani-house/dish-1.jpg</code>. This isn't a real folder — it's just "/" in the key name, but the S3 Console shows it as folders for convenience.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S3 ═══════════════════════ -->
+  <div class="sec" id="s3"><div class="sec-num">3</div><h2>S3 Storage Classes</h2></div>
+
+  <div class="card">
+    <p>S3 has <strong>7 storage classes</strong> — you pay less for data you access less frequently. Choosing the right class saves significant money. All classes provide 11-nines durability.</p>
+  </div>
+
+  <div class="sc-grid">
+    <div class="sc-card hot">
+      <span class="sc-tag">S3 Standard</span>
+      <h4>Default — Frequently Accessed</h4>
+      <p>Highest availability (99.99%). Instant access. Replicated across 3+ AZs. For active production data.</p>
+      <div class="sc-cost">~$0.023/GB/month</div>
+    </div>
+    <div class="sc-card int">
+      <span class="sc-tag">Intelligent-Tiering</span>
+      <h4>Auto-Optimized — Unknown Access</h4>
+      <p>AWS automatically moves objects between Frequent and Infrequent tiers. Small monitoring fee per 1,000 objects.</p>
+      <div class="sc-cost">~$0.023/GB + monitoring fee</div>
+    </div>
+    <div class="sc-card ia">
+      <span class="sc-tag">Standard-IA</span>
+      <h4>Infrequent Access</h4>
+      <p>Lower storage cost, retrieval fee charged. Good for data accessed once a month or less. Minimum 30-day storage.</p>
+      <div class="sc-cost">~$0.0125/GB/month</div>
+    </div>
+    <div class="sc-card oia">
+      <span class="sc-tag">One Zone-IA</span>
+      <h4>One AZ — Even Cheaper</h4>
+      <p>Stored in only ONE AZ (not 3). 20% cheaper than Standard-IA. OK if you can recreate the data if that AZ fails.</p>
+      <div class="sc-cost">~$0.01/GB/month</div>
+    </div>
+    <div class="sc-card gi">
+      <span class="sc-tag">Glacier Instant Retrieval</span>
+      <h4>Archive — ms Retrieval</h4>
+      <p>For archive data accessed once per quarter. Millisecond retrieval time. Minimum 90 days storage.</p>
+      <div class="sc-cost">~$0.004/GB/month</div>
+    </div>
+    <div class="sc-card gf">
+      <span class="sc-tag">Glacier Flexible Retrieval</span>
+      <h4>Archive — Min/Hours Retrieval</h4>
+      <p>Retrieval in 1 min–12 hours. For data accessed once or twice a year. Minimum 90 days storage.</p>
+      <div class="sc-cost">~$0.0036/GB/month</div>
+    </div>
+    <div class="sc-card gda">
+      <span class="sc-tag">Glacier Deep Archive</span>
+      <h4>Cheapest — 12hr Retrieval</h4>
+      <p>Retrieval within 12 hours. Lowest cost storage in all of AWS. For data you almost never access — 7-10 year archive. Minimum 180 days.</p>
+      <div class="sc-cost">~$0.00099/GB/month</div>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios — Storage Class Selection</span>
+    <p><strong>BookMyShow</strong> stores current movie showtimes, seat maps, and booking confirmations in <strong>S3 Standard</strong> — accessed millions of times per day. But old ticket PDFs from 2020–2023 (accessed maybe once a year when customers need a refund) are stored in <strong>Glacier Flexible Retrieval</strong> — 85% cheaper. BookMyShow saves ₹40+ lakhs per year in storage costs just by choosing the right class for different data ages.</p>
+    <p><strong>IRCTC</strong> must retain all railway booking records for 7 years (government compliance). Records older than 2 years are automatically moved to <strong>Glacier Deep Archive</strong> — at ₹0.066/GB/month ($0.00099) — the cheapest possible storage. 7 years of booking data at 50 TB = costs only ₹3,300/month vs ₹1.15 lakhs/month on S3 Standard. That's 97% savings.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S4 ═══════════════════════ -->
+  <div class="sec" id="s4"><div class="sec-num">4</div><h2>Access Control (Bucket Policies, ACLs, Public/Private)</h2></div>
+
+  <div class="card">
+    <p>By default, S3 buckets are <strong>100% private</strong> — no one can access anything. You control access through 3 mechanisms.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp"><span class="comp-icon">📜</span><h4>Bucket Policies</h4><p>JSON policies attached to the bucket. Grant access to specific IAM users, roles, or entire public. Most flexible option.</p></div>
+    <div class="comp"><span class="comp-icon">👤</span><h4>ACLs (Access Control Lists)</h4><p>Legacy per-object permissions. Grant read/write to specific AWS accounts. Rarely used today — Bucket Policies are preferred.</p></div>
+    <div class="comp"><span class="comp-icon">🔒</span><h4>Block Public Access</h4><p>Account-level override that blocks ALL public access regardless of bucket policies. Enable this on all buckets that don't need to be public.</p></div>
+    <div class="comp"><span class="comp-icon">🌐</span><h4>Public Bucket</h4><p>When you want everyone to read files (e.g., website images). Make bucket public + add bucket policy allowing public GetObject.</p></div>
+  </div>
+
+  <div class="box danger">
+    <div class="box-title">Never Leave Customer Data Buckets Public — Common Security Mistake</div>
+    Many AWS data breaches happen when developers accidentally make an S3 bucket public. If you store user data, financial records, or health records — <strong>never make the bucket public</strong>. Use Pre-signed URLs instead (see Section 5). AWS now alerts you if a bucket with suspicious content is made public, and many companies enable "Block Public Access" at the account level.
+  </div>
+
+
+  <!-- ═══════════════════════ S5 ═══════════════════════ -->
+  <div class="sec" id="s5"><div class="sec-num">5</div><h2>Pre-signed URLs — Temporary Access</h2></div>
+
+  <div class="card">
+    <p>A <strong>Pre-signed URL</strong> is a temporary URL that gives anyone who has it time-limited access to a specific S3 object — without making the bucket public.</p>
+    <p>It is generated by your server using your AWS credentials. The URL includes an <strong>expiry time</strong> (e.g., 15 minutes, 1 hour). After expiry, the URL stops working.</p>
+  </div>
+
+  <div class="analogy">
+    <span class="analogy-tag">🔑 Analogy — Hotel Key Card</span>
+    <h3>Pre-signed URL = Hotel key card valid for 3 days.</h3>
+    <p>The hotel (S3) is private — you can't just walk in. But the receptionist (your server) generates a special key card (pre-signed URL) that lets you enter your specific room (object) for exactly 3 days. After checkout (expiry), the key card stops working. You never gave permanent access — just a time-limited pass.</p>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios</span>
+    <p><strong>Razorpay</strong> (India's top payment gateway) generates payment receipts as PDF files stored in a private S3 bucket. When a merchant downloads a receipt, Razorpay's server generates a pre-signed URL valid for 5 minutes. The merchant clicks the link and downloads the PDF. After 5 minutes, the link expires — even if they shared it with someone, the URL no longer works. This keeps financial documents secure while allowing legitimate access.</p>
+    <p><strong>Nykaa</strong> (beauty e-commerce) stores product demonstration videos privately on S3. When a user opens a product page, the backend generates a pre-signed URL valid for 2 hours. The video player uses this URL to stream the video. Even if a user copies the URL and tries to share it, after 2 hours it stops working. This prevents unauthorized video sharing/downloading.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S6 ═══════════════════════ -->
+  <div class="sec" id="s6"><div class="sec-num">6</div><h2>S3 Versioning</h2></div>
+
+  <div class="card">
+    <p>Versioning keeps <strong>multiple versions of every object</strong> in the same bucket. When you upload a new version, the old version is kept — not deleted. Every version gets a unique version ID.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp"><span class="comp-icon">🔄</span><h4>Rollback Anytime</h4><p>Accidentally deleted a file? Overwrote it with wrong data? Restore any previous version instantly.</p></div>
+    <div class="comp"><span class="comp-icon">🗑️</span><h4>Delete Marker</h4><p>Deleting an object adds a "delete marker" — original versions still exist. Remove the marker to restore.</p></div>
+    <div class="comp"><span class="comp-icon">💰</span><h4>Costs More Storage</h4><p>Every version stored = billed separately. Use lifecycle policies to delete old versions after N days.</p></div>
+  </div>
+
+  <div class="box tip">
+    <div class="box-title">Always Enable Versioning on Critical Buckets</div>
+    For buckets storing user data, configurations, or any data you can't afford to lose — always enable versioning. It is especially important for buckets that applications write to automatically — a code bug could overwrite millions of objects, and versioning lets you recover all of them.
+  </div>
+
+
+  <!-- ═══════════════════════ S7 ═══════════════════════ -->
+  <div class="sec" id="s7"><div class="sec-num">7</div><h2>Static Website Hosting</h2></div>
+
+  <div class="card">
+    <p>S3 can serve <strong>static websites</strong> (HTML, CSS, JS files — no server-side code) directly. No EC2, no web server needed. Just upload your files and enable "Static Website Hosting" in bucket settings.</p>
+    <p>Your website URL becomes: <code>http://[bucket-name].s3-website.[region].amazonaws.com</code></p>
+    <p>For custom domains (like yourcompany.com), use with Amazon CloudFront (CDN) for HTTPS + speed.</p>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios</span>
+    <p><strong>Meesho</strong> hosts its seller documentation website (how-to guides, API docs, policy pages) on S3 Static Website Hosting. The entire site is HTML/CSS/JS files — no backend needed. Hosting on S3 costs ₹500–2,000/month vs running an EC2 (₹3,000–10,000/month). For any website that doesn't need a database or server-side processing, S3 is the cheapest and most reliable option.</p>
+    <p><strong>Thousands of Indian startups</strong> host their product landing pages, coming-soon pages, and marketing microsites on S3 + CloudFront. Zero server management, infinite scalability, and near-zero cost for low-traffic sites.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S8 ═══════════════════════ -->
+  <div class="sec" id="s8"><div class="sec-num">8</div><h2>Lifecycle Policies — Automate Storage Management</h2></div>
+
+  <div class="card">
+    <p>Lifecycle Policies automatically <strong>transition objects to cheaper storage classes</strong> or <strong>delete them</strong> after a set number of days — without any manual intervention. Define rules once; AWS handles it forever.</p>
+  </div>
+
+  <div class="lf">
+    <div class="lf-row"><div class="lf-box"><h4>Day 0: Upload</h4><p>Fresh object — user accesses it frequently</p><div class="price">S3 Standard: $0.023/GB</div></div></div>
+    <div class="lf-arr">↓</div>
+    <div class="lf-row"><div class="lf-box"><h4>Day 30: Auto-move to S3 Standard-IA</h4><p>Lifecycle rule kicks in — infrequent access after 1 month</p><div class="price">S3 Standard-IA: $0.0125/GB (45% cheaper)</div></div></div>
+    <div class="lf-arr">↓</div>
+    <div class="lf-row"><div class="lf-box"><h4>Day 90: Auto-move to Glacier</h4><p>Rarely accessed — archive it</p><div class="price">Glacier Flexible: $0.0036/GB (84% cheaper than Standard)</div></div></div>
+    <div class="lf-arr">↓</div>
+    <div class="lf-row"><div class="lf-box"><h4>Day 365: Auto-delete (optional)</h4><p>If data is no longer needed after 1 year</p><div class="price">$0 — object deleted</div></div></div>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios</span>
+    <p><strong>OYO Rooms</strong> collects hotel check-in photos, maintenance reports, and guest feedback documents. They use lifecycle policies: photos from last 30 days stay in S3 Standard (operations team checks them daily). Photos 30–90 days old move to Standard-IA (referenced occasionally for disputes). Photos older than 90 days move to Glacier (kept 3 years for legal compliance). After 3 years, auto-deleted. OYO saves ₹25+ lakhs per year compared to keeping everything in S3 Standard forever.</p>
+    <p><strong>Swiggy's delivery partner app</strong> generates location GPS logs. Recent 7 days in S3 Standard (real-time analysis). 7–30 days in Standard-IA (monthly reporting). 30 days+ in Glacier Deep Archive (compliance). After 2 years, auto-deleted. This is a standard data lake pattern used by all major Indian tech companies.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ S9 ═══════════════════════ -->
+  <div class="sec" id="s9"><div class="sec-num">9</div><h2>S3 Replication</h2></div>
+
+  <div class="card">
+    <p>S3 Replication automatically copies objects from one bucket to another — in the same region or a different region. Two types:</p>
     <ul>
-      <li>Storing images and videos for websites</li>
-      <li>Hosting static websites (HTML, CSS, JS)</li>
-      <li>Database backups and disaster recovery</li>
-      <li>Storing log files and analytics data</li>
-      <li>Build artifacts in CI/CD pipelines (store compiled code)</li>
-      <li>Data lake for big data and machine learning</li>
+      <li><strong>CRR (Cross-Region Replication)</strong>: Copy objects to a bucket in a different region. Used for disaster recovery and lowering latency for global users.</li>
+      <li><strong>SRR (Same-Region Replication)</strong>: Copy within the same region. Used for log aggregation, compliance (keeping a separate copy), or separate dev/prod environments.</li>
     </ul>
+  </div>
 
-    <div class="call info">
-      <div class="call-h">S3 is a Global Service</div>
-      S3 is not tied to a specific region when you access it — but each <strong>bucket</strong> is created in a specific region where data is physically stored. The bucket's URL is global; the storage location is regional.
-    </div>
-  </section>
+  <div class="box info">
+    <div class="box-title">Replication Requirements</div>
+    Versioning must be enabled on BOTH source and destination buckets for replication to work. Replication only copies new objects after you enable it — existing objects are not automatically copied (use S3 Batch Operations to copy existing objects).
+  </div>
 
-  <!-- S2 -->
-  <section class="sec" id="s2">
-    <div class="sec-eye">02</div>
-    <h2>Buckets &amp; Objects</h2>
-    <p>S3 has two main concepts: <strong>Buckets</strong> (the containers) and <strong>Objects</strong> (the files inside).</p>
 
-    <h3>Buckets</h3>
-    <p>A Bucket is a top-level container for storing objects. Think of it as a folder in the cloud.</p>
-    <ul>
-      <li>Bucket name must be <strong>globally unique</strong> across all AWS accounts worldwide</li>
-      <li>Name must be <strong>lowercase only</strong>, no spaces, 3–63 characters</li>
-      <li>Each bucket belongs to one specific <strong>AWS Region</strong></li>
-      <li>One AWS account can have up to <strong>100 buckets</strong> by default (can request more)</li>
-      <li>Bucket names cannot be changed after creation — choose carefully!</li>
+  <!-- ═══════════════════════ S10 ═══════════════════════ -->
+  <div class="sec" id="s10"><div class="sec-num">10</div><h2>S3 Encryption</h2></div>
+
+  <div class="card">
+    <p>S3 offers multiple encryption options. Since Nov 2023, <strong>all new S3 objects are encrypted by default</strong> with SSE-S3 — no extra configuration needed.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Type</th><th>Managed By</th><th>Best For</th></tr></thead>
+      <tbody>
+        <tr><td><strong>SSE-S3</strong> (default)</td><td>AWS manages keys automatically</td><td>Standard data — zero effort</td></tr>
+        <tr><td><strong>SSE-KMS</strong></td><td>AWS KMS — you control key rotation and access logs</td><td>Compliance data — audit who accessed keys</td></tr>
+        <tr><td><strong>SSE-C</strong></td><td>You provide your own key with every request</td><td>Strict data sovereignty — key never leaves your control</td></tr>
+        <tr><td><strong>Client-Side</strong></td><td>You encrypt before uploading</td><td>Maximum security — encrypted even before reaching AWS</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════ S11 ═══════════════════════ -->
+  <div class="sec" id="s11"><div class="sec-num">11</div><h2>AWS S3 vs Azure Blob Storage</h2></div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Concept</th><th>Amazon S3</th><th>Azure Blob Storage</th></tr></thead>
+      <tbody>
+        <tr><td>Service Name</td><td>Amazon S3</td><td>Azure Blob Storage</td></tr>
+        <tr><td>Container type</td><td>Bucket</td><td>Container (inside Storage Account)</td></tr>
+        <tr><td>Object name</td><td>Object (with Key)</td><td>Blob</td></tr>
+        <tr><td>Hot storage</td><td>S3 Standard</td><td>Hot tier</td></tr>
+        <tr><td>Infrequent access</td><td>S3 Standard-IA</td><td>Cool tier</td></tr>
+        <tr><td>Archive</td><td>Glacier Deep Archive</td><td>Archive tier</td></tr>
+        <tr><td>Static Website</td><td>S3 Static Website Hosting</td><td>Azure Static Web Apps / $web container</td></tr>
+        <tr><td>Versioning</td><td>S3 Versioning</td><td>Blob Versioning (same concept)</td></tr>
+        <tr><td>CDN</td><td>Amazon CloudFront</td><td>Azure CDN / Front Door</td></tr>
+        <tr><td>Temp URLs</td><td>Pre-signed URLs</td><td>SAS (Shared Access Signature) URLs</td></tr>
+        <tr><td>Data transfer tool</td><td>AWS Snowball</td><td>Azure Data Box</td></tr>
+        <tr><td>File Storage</td><td>Amazon EFS (NFS, Linux)</td><td>Azure Files (SMB + NFS)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+
+  <!-- ═══════════════════════ S12 ═══════════════════════ -->
+  <div class="sec" id="s12"><div class="sec-num">12</div><h2>S3 Summary</h2></div>
+
+  <div class="card">
+    <ul class="steps">
+      <li><span class="sn">1</span><div><strong>S3 = object storage</strong>. Files stored as objects in buckets, accessed via URL. Not a file system — you can't "edit" a file in place.</div></li>
+      <li><span class="sn">2</span><div><strong>11-nines durability</strong>. AWS replicates across 3+ AZs automatically. Almost impossible to lose data.</div></li>
+      <li><span class="sn">3</span><div><strong>7 storage classes</strong>. Standard → Intelligent-Tiering → Standard-IA → One Zone-IA → Glacier Instant → Glacier Flexible → Deep Archive. Cheaper = less frequent access + retrieval fees.</div></li>
+      <li><span class="sn">4</span><div><strong>Default private</strong>. Use Bucket Policies for fine-grained access control. Pre-signed URLs for temporary access.</div></li>
+      <li><span class="sn">5</span><div><strong>Versioning</strong>. Keep multiple versions of every object for rollback and accidental deletion recovery.</div></li>
+      <li><span class="sn">6</span><div><strong>Lifecycle Policies</strong>. Automate transitions to cheaper tiers and automatic deletion. Set it once; save money forever.</div></li>
+      <li><span class="sn">7</span><div><strong>Static Website Hosting</strong>. Host HTML/CSS/JS websites directly from S3 — no server needed.</div></li>
     </ul>
+  </div>
 
-    <div class="call info">
-      <div class="call-h">Bucket URL Format</div>
-      Every object in S3 gets a unique URL:<br>
-      <code>https://bucket-name.s3.region.amazonaws.com/filename.jpg</code><br><br>
-      Example: <code>https://iimt-college.s3.ap-south-1.amazonaws.com/photo.jpg</code>
+  <div class="pills">
+    <span class="pill">Object storage (not block)</span>
+    <span class="pill">Globally unique bucket names</span>
+    <span class="pill">Default: private</span>
+    <span class="pill">7 storage classes</span>
+    <span class="pill">Lifecycle = auto cost savings</span>
+    <span class="pill">Pre-signed URL = temp access</span>
+    <span class="pill">Versioning = accidental delete protection</span>
+  </div>
+
+
+  <!-- ══════════════════ EFS SECTION STARTS ══════════════════ -->
+  <div class="efs-divider">
+    <span class="efs-tag">📁 AWS File Storage · Amazon EFS</span>
+    <h2>Amazon <span>EFS</span></h2>
+    <p>Elastic File System — Shared Network File Storage for Linux EC2 instances. Multiple EC2s read/write the same file system simultaneously.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ EFS1 ═══════════════════════ -->
+  <div class="sec" id="efs1"><div class="sec-num grn">13</div><h2>What is Amazon EFS? <span class="new-badge">NEW</span></h2></div>
+
+  <div class="efs-card">
+    <h3>EFS = Elastic File System</h3>
+    <p><strong>Amazon EFS</strong> is a <strong>fully managed, shared NFS (Network File System)</strong> for Linux-based EC2 instances. Unlike EBS (one volume → one EC2), EFS allows <strong>multiple EC2 instances to read and write the same file system simultaneously</strong>.</p>
+    <p>EFS is <strong>elastic</strong> — it grows and shrinks automatically as you add or remove files. You never provision capacity; you only pay for what you store.</p>
+  </div>
+
+  <div class="analogy-grn">
+    <span class="analogy-tag">📁 Analogy — Company Network Drive</span>
+    <h3>EFS = Company's shared network drive (like an office \\server\files)</h3>
+    <p>Think of EFS like a company's shared network folder that all employees (EC2 instances) can access at the same time. Employee A can edit a document, Employee B can open the same folder and see the change immediately — they're all connected to the same storage. EBS would be like each employee having their own private hard drive — no sharing. S3 would be like a shared Google Drive — accessible via URL but not mountable as a drive letter.</p>
+  </div>
+
+  <div class="cgrid">
+    <div class="comp"><span class="comp-icon">🔗</span><h4>Multi-Attach</h4><p>Thousands of EC2 instances can mount and access the same EFS file system simultaneously.</p></div>
+    <div class="comp"><span class="comp-icon">🐧</span><h4>Linux Only</h4><p>EFS uses NFS protocol — only compatible with Linux EC2 instances. For Windows, use Amazon FSx for Windows.</p></div>
+    <div class="comp"><span class="comp-icon">📏</span><h4>Auto-Scales</h4><p>Starts at 0 bytes. Grows automatically as you add files. Shrinks when you delete them. Never run out of space.</p></div>
+    <div class="comp"><span class="comp-icon">🌐</span><h4>Cross-AZ</h4><p>EFS file system is accessible from multiple Availability Zones in the same region. EBS is locked to a single AZ.</p></div>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Feature</th><th>EFS (File Storage)</th><th>EBS (Block Storage)</th><th>S3 (Object Storage)</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Type</strong></td><td>Shared network file system</td><td>Block device (virtual hard drive)</td><td>Object store (URL-accessed)</td></tr>
+        <tr><td><strong>Protocol</strong></td><td>NFS (Network File System)</td><td>Block (transparent to OS)</td><td>HTTP REST API</td></tr>
+        <tr><td><strong>Access</strong></td><td>Thousands of EC2s simultaneously</td><td>One EC2 at a time (except io2 multi-attach)</td><td>Anyone with URL/permission</td></tr>
+        <tr><td><strong>OS</strong></td><td>Linux only (NFS)</td><td>Linux and Windows</td><td>OS-independent</td></tr>
+        <tr><td><strong>Pricing</strong></td><td>~$0.30/GB/month (Standard)</td><td>~$0.08–0.10/GB/month (gp3)</td><td>~$0.023/GB/month (Standard)</td></tr>
+        <tr><td><strong>Capacity</strong></td><td>Auto-elastic (petabyte scale)</td><td>Provisioned size (max 64 TB)</td><td>Unlimited</td></tr>
+        <tr><td><strong>Use for</strong></td><td>Shared configs, ML models, home dirs</td><td>OS drive, databases, apps</td><td>Images, videos, backups, logs</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scenario">
+    <span class="scenario-tag">🏢 Real Company Scenarios — When Companies Use EFS</span>
+    <p><strong>A major OTT platform like Hotstar or SonyLIV</strong> runs 50+ video transcoding servers simultaneously — taking one uploaded video and converting it into 10 different resolutions (240p, 360p, 480p, 720p, 1080p, 4K, etc.). All 50 servers read the same original video file and write their output to the same shared folder. This is a classic EFS use case — the file system is mounted on all 50 EC2s, and they all work in parallel on shared storage.</p>
+    <p><strong>Swiggy's ML team</strong> trains machine learning models (delivery time prediction, demand forecasting) using Python on 20 EC2 GPU instances. All 20 servers need access to the same 500 GB training dataset. With EFS, they mount the same file system on all 20 instances. With EBS, they'd need to copy 500 GB to each machine — 10 TB total, slow and expensive. EFS = one copy, all servers access it.</p>
+    <p><strong>Freshdesk (Freshworks product)</strong> runs on a fleet of 100+ application servers. All servers need access to the same configuration files, shared libraries, and log directories. EFS is mounted at /app/config and /app/logs — when DevOps updates a config file, all 100 servers see the change immediately without any restart or sync process.</p>
+  </div>
+
+
+  <!-- ═══════════════════════ EFS2 ═══════════════════════ -->
+  <div class="sec" id="efs2"><div class="sec-num grn">14</div><h2>EFS Performance Modes</h2></div>
+
+  <div class="efs-card">
+    <h3>Choose Your Performance Mode at Creation</h3>
+    <p>EFS offers two performance modes. Choose based on how many files per second your workload requires. <strong>This cannot be changed after creation</strong> — choose carefully.</p>
+  </div>
+
+  <div class="pm-grid">
+    <div class="pm-card gp">
+      <h4>General Purpose (default)</h4>
+      <p>Lowest latency per file operation. Best for most workloads. Up to <strong>35,000 IOPS</strong>. Suitable for web servers, content management, home directories, dev environments.</p>
+      <div class="use">✅ Choose this for 99% of use cases. Use by default.</div>
     </div>
-
-    <h3>Objects</h3>
-    <p>An Object is a file stored inside a bucket. Every object has:</p>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Component</th><th>What it is</th><th>Example</th></tr></thead>
-        <tbody>
-          <tr><td><strong>Key</strong></td><td>The file name / path inside the bucket</td><td><code>photos/2024/pic.jpg</code></td></tr>
-          <tr><td><strong>Value</strong></td><td>The actual file data (content)</td><td>The image bytes</td></tr>
-          <tr><td><strong>Metadata</strong></td><td>Extra info about the object (type, size, tags)</td><td><code>Content-Type: image/jpeg</code></td></tr>
-          <tr><td><strong>Version ID</strong></td><td>Unique ID if versioning is enabled</td><td><code>abc123xyz</code></td></tr>
-        </tbody>
-      </table>
+    <div class="pm-card mi">
+      <h4>Max I/O</h4>
+      <p>Highest aggregate throughput and IOPS — but slightly higher latency per operation. For workloads with <strong>thousands of EC2s</strong> all accessing simultaneously. Big data, media processing, analytics.</p>
+      <div class="use">✅ Choose only for massive parallel workloads with 100s of EC2 clients.</div>
     </div>
+  </div>
 
-    <h3>Object Size Limits</h3>
-    <ul>
-      <li>Maximum object size: <strong>5 TB</strong></li>
-      <li>Maximum single upload: <strong>5 GB</strong></li>
-      <li>For files larger than 100 MB → use <strong>Multipart Upload</strong> (splits file into parts)</li>
+  <div class="box warn">
+    <div class="box-title">Also Choose Throughput Mode</div>
+    Separately from performance mode, also choose: <strong>Elastic Throughput</strong> (auto-scales throughput, pay per use — recommended for most) OR <strong>Provisioned Throughput</strong> (fixed throughput, you pay for it regardless of use — for predictable high-throughput workloads).
+  </div>
+
+
+  <!-- ═══════════════════════ EFS3 ═══════════════════════ -->
+  <div class="sec" id="efs3"><div class="sec-num grn">15</div><h2>EFS Storage Classes</h2></div>
+
+  <div class="efs-card">
+    <h3>EFS also has storage tiers to reduce cost</h3>
+    <p>Similar to S3, EFS has tiered pricing. Files you access less frequently should be in cheaper tiers. Use <strong>EFS Intelligent-Tiering</strong> to automatically move files between tiers based on access.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th class="grn-h">Storage Class</th><th class="grn-h">Price (approx.)</th><th class="grn-h">Use For</th></tr></thead>
+      <tbody>
+        <tr><td><strong>EFS Standard</strong></td><td>~$0.30/GB/month</td><td>Actively accessed files (hot data)</td></tr>
+        <tr><td><strong>EFS Standard-Infrequent Access</strong></td><td>~$0.025/GB/month + retrieval fee</td><td>Files not accessed for 30+ days</td></tr>
+        <tr><td><strong>EFS One Zone</strong></td><td>~$0.16/GB/month</td><td>Single AZ (cheaper, less resilient) — dev/test workloads</td></tr>
+        <tr><td><strong>EFS One Zone-Infrequent Access</strong></td><td>~$0.013/GB/month + retrieval fee</td><td>Single AZ + rarely accessed — cheapest EFS option</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box grn-tip">
+    <div class="box-title">Use EFS Intelligent-Tiering</div>
+    Enable EFS Intelligent-Tiering — it automatically moves files that haven't been accessed for 30+ days to Standard-IA. Files accessed again automatically move back to Standard. This is the easiest way to cut EFS costs by 30–70% without changing any application code.
+  </div>
+
+
+  <!-- ═══════════════════════ EFS4 ═══════════════════════ -->
+  <div class="sec" id="efs4"><div class="sec-num grn">16</div><h2>EBS vs S3 vs EFS — The Full Comparison</h2></div>
+
+  <div class="card">
+    <p>This is the most important table in this module. Know this cold — exam questions always compare these three.</p>
+  </div>
+
+  <div class="tbl">
+    <table>
+      <thead><tr><th>Question</th><th>Use EBS 💾</th><th>Use S3 🗂️</th><th>Use EFS 📁</th></tr></thead>
+      <tbody>
+        <tr><td>What do I store?</td><td>OS disk, database files, app binaries</td><td>Images, videos, backups, logs, documents</td><td>Shared configs, shared datasets, home directories</td></tr>
+        <tr><td>How many EC2s access it?</td><td>1 (exclusive)</td><td>∞ (via URL)</td><td>Thousands simultaneously</td></tr>
+        <tr><td>Can it run a database?</td><td>✅ Yes — fast IOPS</td><td>❌ No — not a file system</td><td>⚠️ Possible but not recommended</td></tr>
+        <tr><td>Works on Windows?</td><td>✅ Yes</td><td>✅ Yes (REST API)</td><td>❌ No — NFS = Linux only</td></tr>
+        <tr><td>Static website hosting?</td><td>❌ No</td><td>✅ Yes</td><td>❌ No</td></tr>
+        <tr><td>Storage grows automatically?</td><td>❌ No — manually provisioned</td><td>✅ Yes — unlimited</td><td>✅ Yes — elastic</td></tr>
+        <tr><td>AWS Pricing (approx.)</td><td>$0.08–0.10/GB/mo (gp3)</td><td>$0.023/GB/mo (Standard)</td><td>$0.30/GB/mo (Standard)</td></tr>
+        <tr><td>Azure equivalent</td><td>Azure Managed Disks</td><td>Azure Blob Storage</td><td>Azure Files</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="box info">
+    <div class="box-title">Quick Decision Rule</div>
+    <strong>VM needs a hard drive?</strong> → EBS &nbsp;|&nbsp;
+    <strong>Store files accessible via URL?</strong> → S3 &nbsp;|&nbsp;
+    <strong>Multiple Linux servers need shared files?</strong> → EFS &nbsp;|&nbsp;
+    <strong>Windows shared file share?</strong> → Amazon FSx for Windows (not EFS)
+  </div>
+
+
+  <!-- ═══════════════════════ EFS5 ═══════════════════════ -->
+  <div class="sec" id="efs5"><div class="sec-num grn">17</div><h2>EFS Summary</h2></div>
+
+  <div class="efs-card">
+    <ul class="steps">
+      <li><span class="sn g">1</span><div><strong>EFS = shared NFS file system</strong> for Linux. Multiple EC2 instances mount and use the same file system simultaneously — like a network drive.</div></li>
+      <li><span class="sn g">2</span><div><strong>Elastic capacity</strong> — starts at 0, grows/shrinks automatically. No need to provision size like EBS.</div></li>
+      <li><span class="sn g">3</span><div><strong>Cross-AZ access</strong> — EBS is stuck in one AZ; EFS is accessible from multiple AZs in the same region.</div></li>
+      <li><span class="sn g">4</span><div><strong>Linux only</strong> — uses NFS protocol. For Windows file shares, use Amazon FSx for Windows File Server instead.</div></li>
+      <li><span class="sn g">5</span><div><strong>Performance Modes</strong>: General Purpose (default, low latency) vs Max I/O (massive parallelism, slight higher latency).</div></li>
+      <li><span class="sn g">6</span><div><strong>Storage Classes</strong>: Standard → Standard-IA. Use Intelligent-Tiering to auto-save costs on infrequently accessed files.</div></li>
+      <li><span class="sn g">7</span><div><strong>Azure equivalent</strong>: Azure Files. Key difference — Azure Files supports both SMB (Windows) and NFS (Linux); EFS supports NFS only.</div></li>
     </ul>
+  </div>
 
-    <div class="call warn">
-      <div class="call-h">S3 is NOT a File System</div>
-      S3 does NOT have real folders. The <code>/</code> in a key like <code>photos/2024/pic.jpg</code> is just part of the file name. The AWS Console shows them as folders, but they don't actually exist — it's just a visual trick. S3 is a flat key-value store.
-    </div>
-  </section>
+  <div class="pills">
+    <span class="pill g">EFS = shared NFS</span>
+    <span class="pill g">Linux only</span>
+    <span class="pill g">Auto-elastic</span>
+    <span class="pill g">Multi-EC2 access</span>
+    <span class="pill g">Cross-AZ</span>
+    <span class="pill g">Intelligent-Tiering saves cost</span>
+    <span class="pill g">Azure Files equivalent</span>
+  </div>
 
-  <!-- S3 -->
-  <section class="sec" id="s3">
-    <div class="sec-eye">03</div>
-    <h2>S3 Storage Classes</h2>
-    <p>S3 offers different <strong>storage classes</strong> to balance cost vs. how often you access the data. You choose the class based on how frequently you need to access the files.</p>
-
-    <div class="analogy">
-      <div class="analogy-h">Simple Analogy</div>
-      Storage classes are like different types of bank accounts. A <strong>savings account</strong> (Standard) — easy to access but costs more to maintain. A <strong>fixed deposit</strong> (Glacier) — your money is locked, you pay a penalty to withdraw early, but the interest rate is lower.
-    </div>
-
-    <div class="sc-grid">
-      <div class="sc">
-        <div class="sc-name">S3 Standard</div>
-        <h4>General Purpose</h4>
-        <p>For data accessed frequently. Highest availability. No retrieval fee.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Highest Cost</span>
-          <span class="sc-tag tag-avail">99.99% Available</span>
-          <span class="sc-tag tag-use">Active Data</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 Intelligent-Tiering</div>
-        <h4>Auto Cost Optimizer</h4>
-        <p>AWS automatically moves your data between Standard and IA based on access patterns. No retrieval fees.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Auto Optimized</span>
-          <span class="sc-tag tag-use">Unknown Access Pattern</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 Standard-IA</div>
-        <h4>Infrequent Access</h4>
-        <p>For data accessed monthly or less. Cheaper storage, but retrieval costs money.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Lower Cost</span>
-          <span class="sc-tag tag-avail">99.9% Available</span>
-          <span class="sc-tag tag-use">Backups, DR</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 One Zone-IA</div>
-        <h4>Single AZ Infrequent</h4>
-        <p>Like Standard-IA but stored in only ONE Availability Zone. Cheaper but data is lost if that AZ fails.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Cheaper IA</span>
-          <span class="sc-tag tag-avail">99.5% Available</span>
-          <span class="sc-tag tag-use">Re-creatable Data</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 Glacier Instant</div>
-        <h4>Archive — Instant Access</h4>
-        <p>Long-term archival data. Very cheap storage. Millisecond retrieval when needed.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Very Low Cost</span>
-          <span class="sc-tag tag-use">Quarterly Access</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 Glacier Flexible</div>
-        <h4>Archive — Minutes to Hours</h4>
-        <p>Very cheap. Retrieval takes 1 minute to 12 hours. Good for backups you rarely need.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Low Cost</span>
-          <span class="sc-tag tag-use">Annual Backups</span>
-        </div>
-      </div>
-      <div class="sc">
-        <div class="sc-name">S3 Glacier Deep Archive</div>
-        <h4>Cheapest Long-Term</h4>
-        <p>Lowest cost in all of S3. Retrieval takes 12–48 hours. For data you almost never need.</p>
-        <div class="sc-meta">
-          <span class="sc-tag tag-cost">Lowest Cost</span>
-          <span class="sc-tag tag-use">7+ Year Compliance</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="tbl-wrap">
-      <table>
-        <thead>
-          <tr><th>Storage Class</th><th>Min Storage</th><th>Retrieval Time</th><th>Best For</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Standard</td><td>None</td><td>Instant</td><td>Active websites, apps</td></tr>
-          <tr><td>Intelligent-Tiering</td><td>None</td><td>Instant</td><td>Unpredictable access patterns</td></tr>
-          <tr><td>Standard-IA</td><td>30 days</td><td>Instant</td><td>Backups, disaster recovery</td></tr>
-          <tr><td>One Zone-IA</td><td>30 days</td><td>Instant</td><td>Secondary backups, thumbnails</td></tr>
-          <tr><td>Glacier Instant</td><td>90 days</td><td>Milliseconds</td><td>Medical images, archives</td></tr>
-          <tr><td>Glacier Flexible</td><td>90 days</td><td>1 min – 12 hrs</td><td>Annual backups</td></tr>
-          <tr><td>Glacier Deep Archive</td><td>180 days</td><td>12 – 48 hrs</td><td>Legal/compliance records</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- S4 -->
-  <section class="sec" id="s4">
-    <div class="sec-eye">04</div>
-    <h2>Access Control — Who Can Access What</h2>
-    <p>By default, S3 buckets and objects are <strong>completely private</strong>. Nobody except the bucket owner can access anything. You control access using these tools:</p>
-
-    <h3>1. Block Public Access (Master Switch)</h3>
-    <p>This is a <strong>safety switch</strong> at the account or bucket level. When enabled (which is the default), it <em>overrides everything</em> and prevents any public access — even if you set a bucket policy that allows it.</p>
-    <div class="call danger">
-      <div class="call-h">Always Keep This ON</div>
-      Block Public Access should be ON for any bucket with sensitive data. Only turn it OFF for buckets that need to be truly public (like a static website or public image CDN).
-    </div>
-
-    <h3>2. Bucket Policy (JSON)</h3>
-    <p>A Bucket Policy is a JSON document that controls who can access the bucket and what they can do. It works at the <strong>bucket level</strong> (applies to the whole bucket and all objects inside).</p>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Element</th><th>Meaning</th></tr></thead>
-        <tbody>
-          <tr><td><code>Principal</code></td><td>WHO the policy applies to (<code>*</code> = everyone, or specific IAM user/role ARN)</td></tr>
-          <tr><td><code>Action</code></td><td>WHAT they can do (<code>s3:GetObject</code>, <code>s3:PutObject</code>, etc.)</td></tr>
-          <tr><td><code>Resource</code></td><td>WHICH objects the rule applies to (bucket ARN)</td></tr>
-          <tr><td><code>Effect</code></td><td>Allow or Deny</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>3. ACL — Access Control List</h3>
-    <p>ACLs are an older method of controlling access at the object level. AWS now recommends using Bucket Policies instead of ACLs for most use cases.</p>
-
-    <h3>Access Decision Flow</h3>
-    <ol>
-      <li>Is Block Public Access ON? → If yes, deny all public access (end of story)</li>
-      <li>Is there an explicit Deny in the Bucket Policy or IAM policy? → Deny</li>
-      <li>Is there an explicit Allow in the Bucket Policy or IAM policy? → Allow</li>
-      <li>Default: Deny</li>
-    </ol>
-  </section>
-
-  <!-- S5 -->
-  <section class="sec" id="s5">
-    <div class="sec-eye">05</div>
-    <h2>Pre-signed URLs — Temporary Access</h2>
-    <p>A <strong>Pre-signed URL</strong> is a temporary URL that gives anyone access to a specific private S3 object for a limited time. After the time expires, the URL stops working.</p>
-
-    <div class="analogy">
-      <div class="analogy-h">Simple Analogy</div>
-      Imagine you want to share a document from a locked office. Instead of giving someone the office key (permanent access), you give them a <strong>temporary visitor pass that expires in 2 hours</strong>. They can enter, get the document, and leave. After 2 hours, the pass becomes invalid. That is a Pre-signed URL.
-    </div>
-
-    <h3>How It Works</h3>
-    <ul>
-      <li>Only the bucket <strong>owner</strong> (or someone with access) can generate a pre-signed URL</li>
-      <li>The URL contains an encrypted signature and expiry time</li>
-      <li>Anyone with the URL can access the object — no AWS account needed</li>
-      <li>After expiry, the URL returns a 403 Forbidden error</li>
-      <li>Maximum expiry: <strong>7 days</strong> (604800 seconds)</li>
-    </ul>
-
-    <h3>When to Use Pre-signed URLs</h3>
-    <ul>
-      <li>Share a private file download link with a customer temporarily</li>
-      <li>Allow a user to upload a file directly to S3 without AWS credentials</li>
-      <li>Streaming private video/audio for a limited time (e.g., after payment)</li>
-    </ul>
-
-    <div class="call tip">
-      <div class="call-h">Azure Equivalent</div>
-      Pre-signed URL in AWS S3 = <strong>SAS Token</strong> in Azure Blob Storage. Both provide temporary, time-limited access to private files.
-    </div>
-  </section>
-
-  <!-- S6 -->
-  <section class="sec" id="s6">
-    <div class="sec-eye">06</div>
-    <h2>S3 Versioning</h2>
-    <p><strong>Versioning</strong> keeps multiple versions of the same object. Every time you upload a new version of a file with the same name, S3 keeps the old version too — nothing is deleted.</p>
-
-    <div class="analogy">
-      <div class="analogy-h">Simple Analogy</div>
-      Think of versioning like <strong>Microsoft Word's track changes</strong> or <strong>Google Docs version history</strong>. Every save creates a new version. You can go back to any previous version at any time. Nothing is permanently lost.
-    </div>
-
-    <h3>How Versioning Works</h3>
-    <ul>
-      <li>Versioning is <strong>disabled by default</strong> — you must enable it per bucket</li>
-      <li>Once enabled, it <strong>cannot be fully disabled</strong> — only suspended</li>
-      <li>Each version gets a unique <strong>Version ID</strong></li>
-      <li>When you "delete" an object, S3 adds a <strong>Delete Marker</strong> instead of actually deleting it — the old versions are still there</li>
-      <li>To permanently delete all versions, you must delete each version individually</li>
-    </ul>
-
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Action</th><th>Without Versioning</th><th>With Versioning</th></tr></thead>
-        <tbody>
-          <tr><td>Upload file.txt (v2)</td><td>Overwrites old file — gone forever</td><td>Old v1 saved, new v2 becomes current</td></tr>
-          <tr><td>Delete file.txt</td><td>Gone forever</td><td>Delete marker added, all versions preserved</td></tr>
-          <tr><td>Recover old version</td><td>Not possible</td><td>Restore any previous version by Version ID</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="call warn">
-      <div class="call-h">Versioning Increases Storage Cost</div>
-      Every version of every file is stored and billed separately. A file updated 10 times = 10 versions all charged. Use Lifecycle Policies (Section 08) to automatically delete old versions after a set number of days.
-    </div>
-  </section>
-
-  <!-- S7 -->
-  <section class="sec" id="s7">
-    <div class="sec-eye">07</div>
-    <h2>Static Website Hosting</h2>
-    <p>S3 can host a <strong>static website</strong> (HTML, CSS, JavaScript files) without needing a web server like Apache or Nginx. S3 serves the files directly to the browser.</p>
-
-    <div class="call info">
-      <div class="call-h">Static vs Dynamic Websites</div>
-      <strong>Static</strong> = HTML/CSS/JS files only. Content is the same for everyone. Can be hosted on S3.<br>
-      <strong>Dynamic</strong> = Requires a server to generate content (PHP, Python, Node.js). Cannot be hosted on S3 alone — needs EC2 or Lambda.
-    </div>
-
-    <h3>How to Enable</h3>
-    <ol>
-      <li>Create an S3 bucket with the same name as your domain (e.g., <code>www.mysite.com</code>)</li>
-      <li>Upload your <code>index.html</code> and other files</li>
-      <li>Enable Static Website Hosting in bucket properties</li>
-      <li>Set index document: <code>index.html</code>, error document: <code>error.html</code></li>
-      <li>Make the bucket public (set Bucket Policy to allow <code>s3:GetObject</code> for everyone)</li>
-      <li>Your site is live at: <code>http://bucket-name.s3-website-region.amazonaws.com</code></li>
-    </ol>
-
-    <h3>Real Use Cases</h3>
-    <ul>
-      <li>Portfolio websites, landing pages, documentation sites</li>
-      <li>Paired with <strong>CloudFront</strong> (CDN) for fast global delivery + HTTPS</li>
-      <li>Paired with <strong>Route 53</strong> (DNS) for custom domain names</li>
-      <li>React / Vue / Angular apps (after build, output is static files)</li>
-    </ul>
-  </section>
-
-  <!-- S8 -->
-  <section class="sec" id="s8">
-    <div class="sec-eye">08</div>
-    <h2>S3 Lifecycle Policies</h2>
-    <p>A <strong>Lifecycle Policy</strong> automatically moves or deletes objects based on rules you set. You define: <em>"After X days, move this object to a cheaper storage class. After Y days, delete it."</em></p>
-
-    <div class="analogy">
-      <div class="analogy-h">Simple Analogy</div>
-      Think of it like a <strong>file cabinet cleanup rule</strong>: "Active files stay on the desk (Standard). After 30 days, move them to the cabinet (IA). After 90 days, put them in the basement (Glacier). After 365 days, shred them (delete)."
-    </div>
-
-    <h3>Example Lifecycle Flow</h3>
-    <div class="flow">
-      <div class="flow-step">
-        <div class="fs-class">Standard</div>
-        <div class="fs-day">Day 0–30</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="fs-class">Standard-IA</div>
-        <div class="fs-day">Day 30–90</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="fs-class">Glacier</div>
-        <div class="fs-day">Day 90–365</div>
-      </div>
-      <div class="flow-arrow">→</div>
-      <div class="flow-step">
-        <div class="fs-class">Deleted</div>
-        <div class="fs-day">After 365 days</div>
-      </div>
-    </div>
-
-    <h3>Use Cases</h3>
-    <ul>
-      <li>Log files — keep 30 days active, archive for 6 months, delete after 1 year</li>
-      <li>Database backups — move to Glacier after 90 days, delete after 7 years</li>
-      <li>Versioning cleanup — delete non-current versions after 30 days to save cost</li>
-    </ul>
-  </section>
-
-  <!-- S9 -->
-  <section class="sec" id="s9">
-    <div class="sec-eye">09</div>
-    <h2>S3 Replication</h2>
-    <p>S3 Replication automatically copies objects from one bucket to another. There are two types:</p>
-
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th></th><th>CRR — Cross-Region Replication</th><th>SRR — Same-Region Replication</th></tr></thead>
-        <tbody>
-          <tr><td><strong>What it does</strong></td><td>Copies objects to a bucket in a DIFFERENT region</td><td>Copies objects to a bucket in the SAME region</td></tr>
-          <tr><td><strong>Use case</strong></td><td>Disaster recovery, lower latency for global users</td><td>Log aggregation, separate account backups</td></tr>
-          <tr><td><strong>Requirement</strong></td><td>Versioning must be ON in both buckets</td><td>Versioning must be ON in both buckets</td></tr>
-          <tr><td><strong>Cost</strong></td><td>Data transfer fees apply (across regions)</td><td>No data transfer fees</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="call tip">
-      <div class="call-h">Key Point for Exams</div>
-      Replication only applies to <strong>new objects</strong> added after replication is enabled. Old existing objects are NOT automatically replicated. Use S3 Batch Operations to replicate existing objects.
-    </div>
-  </section>
-
-  <!-- S10 -->
-  <section class="sec" id="s10">
-    <div class="sec-eye">10</div>
-    <h2>S3 Encryption</h2>
-    <p>S3 encrypts your data to protect it. Encryption happens in two places:</p>
-
-    <h3>Encryption at Rest (data stored in S3)</h3>
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Type</th><th>Who Manages Keys</th><th>Details</th></tr></thead>
-        <tbody>
-          <tr><td><strong>SSE-S3</strong></td><td>AWS manages everything</td><td>Default. AWS generates and manages the keys. Simplest option.</td></tr>
-          <tr><td><strong>SSE-KMS</strong></td><td>AWS KMS manages keys</td><td>You control who can use the key. Audit trail via CloudTrail.</td></tr>
-          <tr><td><strong>SSE-C</strong></td><td>You manage the keys</td><td>You provide the key with every upload/download request.</td></tr>
-          <tr><td><strong>Client-Side</strong></td><td>You encrypt before upload</td><td>Data is encrypted on your side before sending to S3.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <h3>Encryption in Transit</h3>
-    <p>Use <strong>HTTPS</strong> when uploading/downloading. S3 supports both HTTP and HTTPS — always use HTTPS to protect data while it travels over the internet. You can enforce HTTPS via a Bucket Policy.</p>
-
-    <div class="call info">
-      <div class="call-h">Default Encryption</div>
-      Since January 2023, <strong>all new objects in S3 are encrypted by default</strong> using SSE-S3 (AES-256). You don't need to do anything extra — it's automatic.
-    </div>
-  </section>
-
-  <!-- S11 -->
-  <section class="sec" id="s11">
-    <div class="sec-eye">11</div>
-    <h2>AWS S3 vs Azure Blob Storage</h2>
-    <p>Both are object storage services — the most widely used cloud storage type. Here's how they compare:</p>
-
-    <div class="tbl-wrap">
-      <table>
-        <thead><tr><th>Feature</th><th>AWS S3</th><th>Azure Blob Storage</th></tr></thead>
-        <tbody>
-          <tr><td>Container name</td><td>Bucket</td><td>Container</td></tr>
-          <tr><td>File</td><td>Object</td><td>Blob</td></tr>
-          <tr><td>Temporary URL</td><td>Pre-signed URL</td><td>SAS Token</td></tr>
-          <tr><td>Default access</td><td>Private</td><td>Private</td></tr>
-          <tr><td>Cheapest archive</td><td>Glacier Deep Archive</td><td>Archive Tier</td></tr>
-          <tr><td>Auto tiering</td><td>Intelligent-Tiering</td><td>No direct equivalent</td></tr>
-          <tr><td>Static website</td><td>Yes (built-in)</td><td>Yes (static website feature)</td></tr>
-          <tr><td>Versioning</td><td>S3 Versioning</td><td>Blob versioning (preview)</td></tr>
-          <tr><td>Replication</td><td>CRR / SRR</td><td>GRS / GZRS</td></tr>
-          <tr><td>Max object size</td><td>5 TB</td><td>Approx. 4.75 TB (Block Blob)</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
-
-  <!-- S12 -->
-  <section class="sec" id="s12">
-    <div class="sec-eye">12</div>
-    <h2>Key Summary</h2>
-    <div class="sum">
-      <h3>Everything You Must Remember About S3</h3>
-      <div class="sum-grid">
-        <div class="sum-item"><span class="sum-dot"></span>S3 = object storage for any file type, unlimited size</div>
-        <div class="sum-item"><span class="sum-dot"></span>Bucket name must be globally unique (worldwide)</div>
-        <div class="sum-item"><span class="sum-dot"></span>Objects have a Key (name), Value (data), Metadata</div>
-        <div class="sum-item"><span class="sum-dot"></span>Max object size = 5 TB; use Multipart for files &gt; 100 MB</div>
-        <div class="sum-item"><span class="sum-dot"></span>S3 is NOT a file system — no real folders, just key names</div>
-        <div class="sum-item"><span class="sum-dot"></span>Buckets are private by default — Block Public Access is ON</div>
-        <div class="sum-item"><span class="sum-dot"></span>7 storage classes: Standard → Intelligent → IA → One Zone-IA → Glacier × 3</div>
-        <div class="sum-item"><span class="sum-dot"></span>Pre-signed URL = temporary access link with expiry</div>
-        <div class="sum-item"><span class="sum-dot"></span>Versioning = keeps all versions of every file; can't be undone once enabled</div>
-        <div class="sum-item"><span class="sum-dot"></span>Lifecycle Policy = auto-move to cheaper storage after X days</div>
-        <div class="sum-item"><span class="sum-dot"></span>CRR = copy to different region; SRR = copy within same region</div>
-        <div class="sum-item"><span class="sum-dot"></span>Default encryption = SSE-S3 (AES-256) since Jan 2023</div>
-        <div class="sum-item"><span class="sum-dot"></span>S3 can host static websites (HTML/CSS/JS only)</div>
-        <div class="sum-item"><span class="sum-dot"></span>11 nines = 99.999999999% durability (virtually impossible to lose data)</div>
-      </div>
-    </div>
-  </section>
 
   <!-- OFFICIAL DOCUMENTATION -->
-  <div style="margin:32px 0; padding:28px 32px; background:rgba(255,153,0,.07); border:1.5px solid rgba(255,153,0,.2); border-radius:14px;">
-    <div style="font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#FF9900; margin-bottom:8px;">AWS Official Docs</div>
-    <h2 style="font-family:'Outfit',sans-serif; font-weight:700; font-size:1.3rem; color:inherit; margin-bottom:6px;">Official Documentation — S3</h2>
-    <p style="font-size:13.5px; margin-bottom:18px; opacity:0.8;">All links go to <strong>docs.aws.amazon.com</strong> — official AWS reference.</p>
+  <div style="margin:32px 0;padding:28px 32px;background:rgba(255,153,0,.07);border:1.5px solid rgba(255,153,0,.2);border-radius:14px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:#FF9900;margin-bottom:8px;">AWS Official Docs</div>
+    <h2 style="font-family:'Outfit',sans-serif;font-weight:700;font-size:1.3rem;color:inherit;margin-bottom:16px;">Official Documentation</h2>
     <div style="overflow-x:auto;">
-      <table style="width:100%; border-collapse:collapse; font-size:13px;">
-        <thead>
-          <tr>
-            <th style="background:#232F3E; color:#FF9900; font-family:'Outfit',sans-serif; font-weight:600; font-size:11.5px; text-align:left; padding:10px 14px; border-radius:8px 0 0 0;">Topic</th>
-            <th style="background:#232F3E; color:#FF9900; font-family:'Outfit',sans-serif; font-weight:600; font-size:11.5px; text-align:left; padding:10px 14px; border-radius:0 8px 0 0;">AWS Docs URL</th>
-          </tr>
-        </thead>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead><tr>
+          <th style="background:#232F3E;color:#FF9900;font-family:'Outfit',sans-serif;font-weight:600;font-size:11.5px;text-align:left;padding:10px 14px;">Service</th>
+          <th style="background:#232F3E;color:#FF9900;font-family:'Outfit',sans-serif;font-weight:600;font-size:11.5px;text-align:left;padding:10px 14px;">Topic</th>
+          <th style="background:#232F3E;color:#FF9900;font-family:'Outfit',sans-serif;font-weight:600;font-size:11.5px;text-align:left;padding:10px 14px;">AWS Docs URL</th>
+        </tr></thead>
         <tbody>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">S3 Overview</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/Welcome.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Creating Buckets</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/creating-buckets-s3.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/creating-buckets-s3.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Storage Classes (Standard / IA / Glacier)</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/storage-class-intro.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Bucket Policies (Access Control)</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucket-policies.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/bucket-policies.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Pre-signed URLs</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/ShareObjectPreSignedURL.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Versioning</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/Versioning.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Static Website Hosting</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/WebsiteHosting.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/WebsiteHosting.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Lifecycle Policies</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/object-lifecycle-mgmt.html</a></td></tr>
-          <tr style="border-bottom:1px solid rgba(255,255,255,.06);"><td style="padding:9px 14px; opacity:0.9;">Cross-Region Replication (CRR)</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/replication.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/replication.html</a></td></tr>
-          <tr><td style="padding:9px 14px; opacity:0.9;">S3 Encryption</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html" target="_blank" style="color:#FF9900; font-family:'JetBrains Mono',monospace; font-size:12px; text-decoration:none;">S3/UsingEncryption.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">S3</td><td style="padding:9px 14px;">S3 Overview</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">S3/Welcome.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">S3</td><td style="padding:9px 14px;">Storage Classes</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/storage-class-intro.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">storage-class-intro.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">S3</td><td style="padding:9px 14px;">Pre-signed URLs</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/ShareObjectPreSignedURL.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">ShareObjectPreSignedURL.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">S3</td><td style="padding:9px 14px;">Lifecycle Policies</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">object-lifecycle-mgmt.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">EFS</td><td style="padding:9px 14px;">EFS Overview</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/efs/latest/ug/whatisefs.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">efs/whatisefs.html</a></td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 14px;">EFS</td><td style="padding:9px 14px;">Performance Modes</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/efs/latest/ug/performance.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">efs/performance.html</a></td></tr>
+          <tr><td style="padding:9px 14px;">EFS</td><td style="padding:9px 14px;">EFS Storage Classes</td><td style="padding:9px 14px;"><a href="https://docs.aws.amazon.com/efs/latest/ug/storage-classes.html" target="_blank" style="color:#FF9900;font-family:'JetBrains Mono',monospace;font-size:12px;">efs/storage-classes.html</a></td></tr>
         </tbody>
       </table>
-    </div>
-    <div style="margin-top:16px; padding:14px 18px; background:rgba(109,203,109,.08); border-left:4px solid #6DCB6D; border-radius:0 10px 10px 0; font-size:13.5px;">
-      <span style="font-family:'Outfit',sans-serif; font-size:11px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:#6DCB6D; display:block; margin-bottom:6px;">Free Hands-On Labs</span>
-      <a href="https://skillbuilder.aws" target="_blank" style="color:#6DCB6D;">AWS Skill Builder</a> — free browser-based S3 labs. Also see the <a href="https://aws.amazon.com/s3/pricing/" target="_blank" style="color:#6DCB6D;">S3 Pricing page</a> — first 5 GB per month is always free.
     </div>
   </div>
 
   <footer class="foot">
-    <b>AWS S3 — Amazon Simple Storage Service</b><br>
-    Theory Notes · Cloud Computing
+    <b>Amazon S3 + Amazon EFS</b> · Module 04 · Cloud Computing, 1st Semester · IIMT University<br>
+    Trainer: Sahil Kumar · <a href="https://cloudsynq.shop" style="color:var(--acc2);">CloudSynq</a>
   </footer>
+
 </div>
+</body>
+</html>
